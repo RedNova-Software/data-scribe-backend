@@ -5,7 +5,7 @@
     "data-scribe-backend": "bin/data-scribe-backend.js"
   },
   "scripts": {
-    "deploy": "npm run build && npm run hotswap",
+    "deploy": "npm run build && cdk deploy",
     "build": "ts-node ./lib/helpers/build-go.ts",
     "hotswap": "cdk deploy --hotswap",
     "watch": "tsc -w",

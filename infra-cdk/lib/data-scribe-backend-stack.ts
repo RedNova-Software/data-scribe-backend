@@ -9,7 +9,13 @@ export class DataScribeBackendStack extends cdk.Stack {
     super(scope, id, props);
 
     const myFunction = new lambda.Function(this, "MyLambda", {
-      code: lambda.Code.fromAsset(path.join(__dirname, "../bin/lambdas/test")),
+      code: lambda.Code.fromAsset(path.join(__dirname, "../bin/lambdas/test-endpoint")),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+    })
+
+    const myNewFunction = new lambda.Function(this, "NewLambda", {
+      code: lambda.Code.fromAsset(path.join(__dirname, "../bin/lambdas/new-endpoint")),
       handler: "main",
       runtime: lambda.Runtime.PROVIDED_AL2023,
     })
@@ -23,8 +29,15 @@ export class DataScribeBackendStack extends cdk.Stack {
 
 
     const integration = new apigateway.LambdaIntegration(myFunction)
-    const testResource = gateway.root.addResource("test")
-    testResource.addMethod("GET", integration)
+    const newIntegration = new apigateway.LambdaIntegration(myNewFunction)
+
+
+    const testEndpoint = gateway.root.addResource("test")
+    const newEndpoint = gateway.root.addResource("new")
+
+
+    testEndpoint.addMethod("GET", integration)
+    newEndpoint.addMethod("GET", newIntegration)
   }
 
 
