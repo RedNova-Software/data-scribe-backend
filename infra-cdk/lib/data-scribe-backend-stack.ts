@@ -20,7 +20,7 @@ export class DataScribeBackendStack extends cdk.Stack {
     const reportLambda = new lambda.Function(this, 'ReportLambda', {
       code: lambda.Code.fromAsset(path.join(__dirname, '../bin/lambdas/create-empty-report-endpoint')),
       handler: 'main',
-      runtime: lambda.Runtime.PROVIDED_AL2,
+      runtime: lambda.Runtime.PROVIDED_AL2023,
       environment: {
         REPORT_TABLE: reportTable.tableName,
       },
@@ -36,7 +36,7 @@ export class DataScribeBackendStack extends cdk.Stack {
     })
 
     const integration = new apigateway.LambdaIntegration(reportLambda)
-    const reportEndpoint = gateway.root.addResource('report')
+    const reportEndpoint = gateway.root.addResource('report').addResource('create')
    
     reportEndpoint.addMethod("POST", integration)
     
