@@ -1,44 +1,45 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import * as lambda from "aws-cdk-lib/aws-lambda"
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import path = require('path');
+import { DynamoDBTable, ReportTable } from './constants/dynamodb-constants';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class DataScribeBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const myFunction = new lambda.Function(this, "MyLambda", {
-      code: lambda.Code.fromAsset(path.join(__dirname, "../bin/lambdas/test-endpoint")),
-      handler: "main",
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-    })
+    const reportTable = new dynamodb.Table(this, 'ReportTable', {
+      partitionKey: { name: 'ReportID', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'ReportType', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
 
-    const myNewFunction = new lambda.Function(this, "NewLambda", {
-      code: lambda.Code.fromAsset(path.join(__dirname, "../bin/lambdas/new-endpoint")),
-      handler: "main",
+    const reportLambda = new lambda.Function(this, 'ReportLambda', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../bin/lambdas/create-empty-report-endpoint')),
+      handler: 'main',
       runtime: lambda.Runtime.PROVIDED_AL2023,
-    })
+      environment: {
+        REPORT_TABLE: reportTable.tableName,
+      },
+    });
 
-    const gateway = new apigateway.RestApi(this, "myGateway", {
+    reportTable.grantReadWriteData(reportLambda)
+    
+    const gateway = new apigateway.RestApi(this, "RedNovaGateway", {
       defaultCorsPreflightOptions: {
         allowOrigins: ["*"],
-        allowMethods: ["GET", "POST", "OPTIONS", "DELETE", "PUT"],
+        allowMethods: ["POST"],
       }
     })
 
-
-    const integration = new apigateway.LambdaIntegration(myFunction)
-    const newIntegration = new apigateway.LambdaIntegration(myNewFunction)
-
-
-    const testEndpoint = gateway.root.addResource("test")
-    const newEndpoint = gateway.root.addResource("new")
-
-
-    testEndpoint.addMethod("GET", integration)
-    newEndpoint.addMethod("GET", newIntegration)
+    const integration = new apigateway.LambdaIntegration(reportLambda)
+    const reportEndpoint = gateway.root.addResource('report').addResource('create')
+   
+    reportEndpoint.addMethod("POST", integration)
+    
   }
-
 
 }
