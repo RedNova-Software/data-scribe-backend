@@ -40,7 +40,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if item == nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusNotFound,
-			Body:       "Report not found: " + err.Error(),
+			Body:       "Report not found",
 		}, nil
 	}
 
