@@ -1,6 +1,7 @@
 package constants
 
 type DynamoDBTable string
+type DynamoDBField string
 type AWSRegions string
 
 const (
@@ -10,3 +11,18 @@ const (
 const (
 	USEast2 AWSRegions = "us-east-2"
 )
+
+const (
+    ReportIDField    DynamoDBField = "ReportID"
+    ReportTypeField  DynamoDBField = "ReportType"
+    TitleField       DynamoDBField = "Title"
+    CityField        DynamoDBField = "City"
+	PartsField       DynamoDBField = "Parts"
+	HeadersField     DynamoDBField = "Headers"
+	SectionsField    DynamoDBField = "Sections"
+	QuestionsField   DynamoDBField = "Questions"
+)
+
+func (field DynamoDBField) String() string {
+    return string(field)
+}

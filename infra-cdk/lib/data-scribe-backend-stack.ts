@@ -13,12 +13,11 @@ export class DataScribeBackendStack extends cdk.Stack {
 
     const reportTable = new dynamodb.Table(this, 'ReportTable', {
       partitionKey: { name: 'ReportID', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'ReportType', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
 
-    const reportLambda = new lambda.Function(this, 'ReportLambda', {
-      code: lambda.Code.fromAsset(path.join(__dirname, '../bin/lambdas/create-empty-report-endpoint')),
+    const addReportLambda = new lambda.Function(this, 'AddReportLambda', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../bin/lambdas/post-add-report')),
       handler: 'main',
       runtime: lambda.Runtime.PROVIDED_AL2023,
       environment: {
@@ -26,19 +25,34 @@ export class DataScribeBackendStack extends cdk.Stack {
       },
     });
 
-    reportTable.grantReadWriteData(reportLambda)
+    const addPartLambda = new lambda.Function(this, 'AddPartLambda',  {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../bin/lambdas/post-add-part')),
+        handler: 'main',
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: reportTable.tableName,
+        },
+    });
+
+    reportTable.grantReadWriteData(addReportLambda)
+    reportTable.grantReadWriteData(addPartLambda)
     
     const gateway = new apigateway.RestApi(this, "RedNovaGateway", {
       defaultCorsPreflightOptions: {
         allowOrigins: ["*"],
         allowMethods: ["POST"],
       }
-    })
+    });
 
-    const integration = new apigateway.LambdaIntegration(reportLambda)
-    const reportEndpoint = gateway.root.addResource('report').addResource('create')
-   
-    reportEndpoint.addMethod("POST", integration)
+    const addReportIntegration = new apigateway.LambdaIntegration(addReportLambda);
+    const addPartIntegration = new apigateway.LambdaIntegration(addPartLambda);
+
+    const reportResource = gateway.root.addResource('report');
+    const addResource = reportResource.addResource('add');
+    const partResource = addResource.addResource('part');
+
+    reportResource.addMethod("POST", addReportIntegration); 
+    partResource.addMethod("POST", addPartIntegration);
     
   }
 

@@ -13,12 +13,12 @@ type Section struct {
 
 type Header struct {
 	Title string
+	Sections []Section
 }
 
 type Part struct {
 	Title    string
 	Headers  []Header
-	Sections []Section
 }
 
 type TextOutput struct {
@@ -27,7 +27,7 @@ type TextOutput struct {
 }
 
 type ModelInfo struct {
-	// Placeholder for model-specific information
+	
 }
 
 type Model struct {
