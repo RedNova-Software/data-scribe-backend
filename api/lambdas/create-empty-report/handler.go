@@ -25,6 +25,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusMethodNotAllowed,
 			Body:       "Method Not Allowed",
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -34,6 +35,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "Bad Request: " + err.Error(),
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -41,6 +43,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "Bad Request: reportType, title and city are required.",
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -59,18 +62,14 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       "Internal Server Error: " + err.Error(),
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Body:       "Empty report created successfully with ID: " + reportID,
-		Headers: map[string]string{
-			"Content-Type":                 "application/json",
-			"Access-Control-Allow-Origin":  "*",
-			"Access-Control-Allow-Methods": "OPTIONS,POST,GET",
-			"Access-Control-Allow-Headers": "Content-Type",
-		},
+		Headers:    constants.CorsHeaders,
 	}, nil
 }
 

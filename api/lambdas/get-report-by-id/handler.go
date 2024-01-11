@@ -24,6 +24,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "Bad Request: Missing reportID from path.",
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -34,6 +35,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       "Error getting report by ReportID: " + err.Error(),
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -41,6 +43,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusNotFound,
 			Body:       "Report not found",
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -52,6 +55,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       "Error unmarshalling dynamo item into report: " + err.Error(),
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -61,6 +65,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       "Error marshalling report into JSON: " + err.Error(),
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -68,12 +73,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Body:       string(reportJSON),
-		Headers: map[string]string{
-			"Content-Type":                 "application/json",
-			"Access-Control-Allow-Origin":  "*",
-			"Access-Control-Allow-Methods": "OPTIONS,POST,GET",
-			"Access-Control-Allow-Headers": "Content-Type",
-		},
+		Headers:    constants.CorsHeaders,
 	}, nil
 }
 
