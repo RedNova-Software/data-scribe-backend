@@ -37,6 +37,18 @@ To deploy your Lambda functions along with the infrastructure to AWS, simply exe
 npm run deploy
 ```
 
+To build the lambdas into binaries simply:
+
+```bash
+npm run build
+```
+
+To hotswap the lambdas into the cloud (only updating Go code for iterating on an endpoint) simply:
+
+```bash
+npm run hotswap
+```
+
 ## Design Philosophy
 
 The architecture is crafted to ensure that each Lambda function acts as an independent microservice, containing only the code that it needs to perform its job. This results in faster start times and more efficient resource utilization, as unnecessary dependencies and bloat are eliminated. When API Gateway invokes a Lambda function, it starts up with the minimal set of binaries required for that specific endpoint, adhering to the principles of lean software and on-demand scalability.
