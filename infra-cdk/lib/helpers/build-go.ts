@@ -23,7 +23,6 @@ lambdaFolders.forEach(folder => {
     try {
       const goFilePath = path.join(folderPath, 'handler.go');
       const outputPath = path.join(outputDir, folder);
-      const zipPath = `${outputPath}.zip`;
 
       // Compile the Go file
       execSync(`GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o ${outputPath}/bootstrap ${goFilePath}`, {

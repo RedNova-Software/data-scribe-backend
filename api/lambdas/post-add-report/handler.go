@@ -1,16 +1,17 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"api/shared/constants"
 	"api/shared/models"
 	"api/shared/util"
-	"github.com/google/uuid"
+	"context"
+	"encoding/json"
 	"net/http"
 	"os"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/google/uuid"
 )
 
 type AddReportRequest struct {
@@ -24,6 +25,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusMethodNotAllowed,
 			Body:       "Method Not Allowed",
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -33,6 +35,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "Bad Request: " + err.Error(),
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -40,6 +43,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "Bad Request: reportType, title and city are required.",
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
@@ -74,12 +78,14 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       "Internal Server Error: " + err.Error(),
+			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Body:       "Empty report created successfully with ID: " + reportID,
+		Headers:    constants.CorsHeaders,
 	}, nil
 }
 
