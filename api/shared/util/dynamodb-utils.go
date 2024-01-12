@@ -52,11 +52,11 @@ func AddElementToReportList(tableName, reportID, listPath string, element interf
     expressionAttributeValues[":emptyList"] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
     expressionAttributeValues[":elem"] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{marshaledElement}}
 
-    return updateDynamoDBNestedElement(dynamoDBClient, tableName, reportID, updateExpression, expressionAttributeValues)
+    return updateDynamoDBElement(dynamoDBClient, tableName, reportID, updateExpression, expressionAttributeValues)
 }
 
 
-func updateDynamoDBNestedElement(dynamoDBClient *dynamodb.DynamoDB, tableName, reportID, updateExpression string, expressionAttributeValues map[string]*dynamodb.AttributeValue) error {
+func updateDynamoDBElement(dynamoDBClient *dynamodb.DynamoDB, tableName, reportID, updateExpression string, expressionAttributeValues map[string]*dynamodb.AttributeValue) error {
 	input := &dynamodb.UpdateItemInput{
         TableName: aws.String(tableName),
         Key: map[string]*dynamodb.AttributeValue{
