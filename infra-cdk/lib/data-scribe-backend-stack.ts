@@ -43,6 +43,12 @@ export class DataScribeBackendStack extends cdk.Stack {
       },
     });
 
+    const getAllReportTypesLambda = new lambda.Function(this, 'GetAllReportTypesLambda', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../bin/lambdas/get-all-report-types')),
+      handler: 'main',
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+    });
+
     reportTable.grantReadWriteData(createNewReportLambda)
     reportTable.grantReadData(getReportByIDLambda)
     reportTable.grantReadData(getAllReportsLambda)
@@ -71,6 +77,10 @@ export class DataScribeBackendStack extends cdk.Stack {
 
     const getAllReportsEndpoint = reportEndpoints.addResource('getAll')
     getAllReportsEndpoint.addMethod("GET", new apigateway.LambdaIntegration(getAllReportsLambda))
+  
+    
+    const getAllReportTypesEndpoint = reportEndpoints.addResource('types')
+    getAllReportTypesEndpoint.addMethod("GET",new apigateway.LambdaIntegration(getAllReportTypesLambda) )
   }
 
 }
