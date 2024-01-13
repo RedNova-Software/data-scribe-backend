@@ -48,32 +48,19 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	reportID := uuid.New().String()
+
 	report := models.Report{
 		ReportID:   reportID,
 		ReportType: req.ReportType,
 		Title:      req.Title,
 		City:       req.City,
-		Parts: []models.Part{
-			{
-				Title: "Part Title",
-				Headers: []models.Header{
-					{
-						Title: "Header Title",
-						Sections: []models.Section{
-							{
-								Title: "Section Title",
-								Questions: []models.Question{}, // An empty slice of Questions, you can add questions here as needed
-							},
-						},
-					},
-				},
-			},
-		},
+		Parts:      make([]models.Part, 0),
 	}
-	
 
 	tableName := os.Getenv(string(constants.ReportTable))
-	err = util.PutItem(tableName, report)
+
+	err = util.PutNewReport(tableName, report)
+
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,

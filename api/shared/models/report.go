@@ -6,19 +6,20 @@ type Question struct {
 	DataLabel string
 }
 
-type Section struct {
+type SubSection struct {
 	Title     string
 	Questions []Question
 }
 
-type Header struct {
-	Title string
-	Sections []Section
+type Section struct {
+	Title       string
+	SubSections []SubSection
 }
 
 type Part struct {
 	Title    string
-	Headers  []Header
+	Index    uint16
+	Sections []Section
 }
 
 type TextOutput struct {
@@ -27,7 +28,6 @@ type TextOutput struct {
 }
 
 type ModelInfo struct {
-	
 }
 
 type Model struct {
@@ -41,9 +41,9 @@ type ModelOutput struct {
 }
 
 type Report struct {
-	ReportID    string
-	ReportType  string
-	Title 		string
-	City        string
-	Parts       []Part
+	ReportID   string
+	ReportType string
+	Title      string
+	City       string
+	Parts      []Part
 }

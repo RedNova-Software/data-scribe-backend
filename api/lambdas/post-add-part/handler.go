@@ -1,30 +1,25 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"api/shared/constants"
 	"api/shared/models"
 	"api/shared/util"
+	"context"
+	"encoding/json"
 	"net/http"
 	"os"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type AddPartRequest struct {
 	ReportID  string `json:"reportID"`
+	Index     uint16 `json:"partIndex"`
 	PartTitle string `json:"partTitle"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	if request.HTTPMethod != "POST" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusMethodNotAllowed,
-			Body:       "Method Not Allowed",
-		}, nil
-	}
-
 	var req AddPartRequest
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
@@ -34,20 +29,22 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ReportID == "" || req.PartTitle == "" {
+	if req.ReportID == "" || req.PartTitle == "" || req.Index < 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body:       "Bad Request: reportID and partTitle are required.",
+			Body:       "Bad Request: reportID, partTitle, and partIndex are required.",
 		}, nil
 	}
 
 	tableName := os.Getenv(string(constants.ReportTable))
-	part := map[string]interface{}{
-		constants.TitleField.String(): req.PartTitle,
-		constants.HeadersField.String(): []models.Header{},
+
+	newPart := models.Part{
+		Title:    req.PartTitle,
+		Index:    req.Index,
+		Sections: []models.Section{},
 	}
 
-	err = util.AddElementToReportList(tableName, req.ReportID, constants.PartsField.String(), part)
+	err = util.AddPartToReport(tableName, req.ReportID, newPart)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
