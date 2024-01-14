@@ -25,6 +25,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
+			Headers:    constants.CorsHeaders,
 			Body:       "Bad Request: " + err.Error(),
 		}, nil
 	}
@@ -32,6 +33,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if req.ReportID == "" || req.PartTitle == "" || req.Index < 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
+			Headers:    constants.CorsHeaders,
 			Body:       "Bad Request: reportID, partTitle, and partIndex are required.",
 		}, nil
 	}
@@ -43,6 +45,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
+			Headers:    constants.CorsHeaders,
 			Body:       "Internal Server Error: " + err.Error(),
 		}, nil
 	}
@@ -60,12 +63,14 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
+			Headers:    constants.CorsHeaders,
 			Body:       "Internal Server Error: " + err.Error(),
 		}, nil
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
+		Headers:    constants.CorsHeaders,
 		Body:       "Part added successfully to report with ID: " + req.ReportID,
 	}, nil
 }
