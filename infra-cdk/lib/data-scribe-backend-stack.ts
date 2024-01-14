@@ -83,7 +83,7 @@ export class DataScribeBackendStack extends cdk.Stack {
     reportTable.grantReadData(getReportByIDLambda);
     reportTable.grantReadData(getAllReportsLambda);
     reportTable.grantWriteData(createReportLambda);
-    reportTable.grantWriteData(addPartLambda);
+    reportTable.grantReadWriteData(addPartLambda);
 
     const gateway = new apigateway.RestApi(this, "DataScribeGateway", {
       defaultCorsPreflightOptions: {

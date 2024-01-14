@@ -38,6 +38,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	tableName := os.Getenv(string(constants.ReportTable))
 
+	updatedIndices, err := util.ModifyReportPartIndices(tableName, req.ReportID, req.Index, true) // Increment all index values equal and above this part
+
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Body:       "Internal Server Error: " + err.Error(),
+		}, nil
+	}
+
 	newPart := models.Part{
 		Title:    req.PartTitle,
 		Index:    req.Index,
@@ -46,6 +55,9 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	err = util.AddPartToReport(tableName, req.ReportID, newPart)
 	if err != nil {
+		if updatedIndices {
+			util.ModifyReportPartIndices(tableName, req.ReportID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
+		}
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       "Internal Server Error: " + err.Error(),

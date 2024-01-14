@@ -85,7 +85,54 @@ func AddPartToReport(
 	return nil
 }
 
-func GetReport(tableName, keyName, keyValue string) (item map[string]*dynamodb.AttributeValue, err error) {
+// If increment is true, all Part indices equal to or above the newIndex will be incremented.
+// If false, everything larger will be decremented.
+func ModifyReportPartIndices(tableName string, reportID string, newIndex uint16, increment bool) (bool, error) {
+	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	report, err := GetReport(tableName, "ReportID", reportID)
+
+	if err != nil {
+		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return false, fmt.Errorf("report not found: %v", err)
+	}
+
+	updated := false
+	for i, part := range report.Parts {
+		if increment && part.Index >= newIndex {
+			report.Parts[i].Index++
+			updated = true
+		} else if !increment && part.Index > newIndex {
+			report.Parts[i].Index--
+			updated = true
+		}
+	}
+
+	if updated {
+		av, err := dynamodbattribute.MarshalMap(report)
+		if err != nil {
+			return false, err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func GetReport(tableName, keyName, keyValue string) (*models.Report, error) {
 	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
 
 	if err != nil {
@@ -113,7 +160,15 @@ func GetReport(tableName, keyName, keyValue string) (item map[string]*dynamodb.A
 		return nil, nil // Item not found
 	}
 
-	return result.Item, nil
+	var report models.Report
+
+	err = dynamodbattribute.UnmarshalMap(result.Item, &report)
+
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
+	}
+
+	return &report, nil
 }
 
 func GetAllReports(tableName, projectionExpression string) ([]models.Report, error) {
