@@ -2,7 +2,6 @@ package main
 
 import (
 	"api/shared/constants"
-	"api/shared/models"
 	"api/shared/util"
 	"context"
 	"encoding/json"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -29,7 +27,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	tableName := os.Getenv(string(constants.ReportTable))
-	item, err := util.GetItem(tableName, "ReportID", reportID)
+	report, err := util.GetReport(tableName, "ReportID", reportID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -39,22 +37,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if item == nil {
+	if report == nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusNotFound,
 			Body:       "Report not found",
-			Headers:    constants.CorsHeaders,
-		}, nil
-	}
-
-	var report models.Report
-
-	err = dynamodbattribute.UnmarshalMap(item, &report)
-
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Body:       "Error unmarshalling dynamo item into report: " + err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}

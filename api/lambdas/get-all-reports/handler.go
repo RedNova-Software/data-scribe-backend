@@ -19,7 +19,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Attributes to return
 	projectionExpression := "ReportID, ReportType, Title, City"
 
-	reports, err := util.GetAllItems(tableName, projectionExpression)
+	reports, err := util.GetAllReports(tableName, projectionExpression)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return events.APIGatewayProxyResponse{
