@@ -27,17 +27,6 @@ export class DataScribeBackendStack extends cdk.Stack {
       },
     });
 
-    const addPartLambda = new lambda.Function(this, "AddPartLambda", {
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../bin/lambdas/post-add-part")
-      ),
-      handler: "main",
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-      environment: {
-        REPORT_TABLE: reportTable.tableName,
-      },
-    });
-
     const getReportByIDLambda = new lambda.Function(
       this,
       "GetReportByIDLambda",
@@ -77,13 +66,39 @@ export class DataScribeBackendStack extends cdk.Stack {
         ),
         handler: "main",
         runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: reportTable.tableName,
+        },
       }
     );
+
+    const addPartLambda = new lambda.Function(this, "AddPartLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../bin/lambdas/post-add-part")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      environment: {
+        REPORT_TABLE: reportTable.tableName,
+      },
+    });
+
+    const addSectionLambda = new lambda.Function(this, "AddSectionLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../bin/lambdas/post-add-section")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      environment: {
+        REPORT_TABLE: reportTable.tableName,
+      },
+    });
 
     reportTable.grantReadData(getReportByIDLambda);
     reportTable.grantReadData(getAllReportsLambda);
     reportTable.grantWriteData(createReportLambda);
     reportTable.grantReadWriteData(addPartLambda);
+    reportTable.grantReadWriteData(addSectionLambda);
 
     const gateway = new apigateway.RestApi(this, "DataScribeGateway", {
       defaultCorsPreflightOptions: {
@@ -94,18 +109,9 @@ export class DataScribeBackendStack extends cdk.Stack {
 
     const reportResource = gateway.root.addResource("reports");
     const partResource = reportResource.addResource("parts");
+    const sectionsResource = partResource.addResource("sections");
 
-    const createNewReportEndpoint = reportResource.addResource("create");
-    createNewReportEndpoint.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(createReportLambda)
-    );
-
-    const addPartEndpoint = partResource.addResource("add");
-    addPartEndpoint.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(addPartLambda)
-    );
+    // Get endpoints
 
     const getReportByIDEndpoint = reportResource.addResource("get");
     getReportByIDEndpoint.addMethod(
@@ -128,6 +134,26 @@ export class DataScribeBackendStack extends cdk.Stack {
     getAllReportTypesEndpoint.addMethod(
       "GET",
       new apigateway.LambdaIntegration(getAllReportTypesLambda)
+    );
+
+    // Post endpoints
+
+    const createNewReportEndpoint = reportResource.addResource("create");
+    createNewReportEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(createReportLambda)
+    );
+
+    const addPartEndpoint = partResource.addResource("add");
+    addPartEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(addPartLambda)
+    );
+
+    const addSectionEndpoint = sectionsResource.addResource("add");
+    addSectionEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(addSectionLambda)
     );
   }
 }

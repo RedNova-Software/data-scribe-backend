@@ -13,16 +13,17 @@ const (
 )
 
 const (
-    ReportIDField    DynamoDBField = "ReportID"
-    ReportTypeField  DynamoDBField = "ReportType"
-    TitleField       DynamoDBField = "Title"
-    CityField        DynamoDBField = "City"
-	PartsField       DynamoDBField = "Parts"
-	HeadersField     DynamoDBField = "Headers"
-	SectionsField    DynamoDBField = "Sections"
-	QuestionsField   DynamoDBField = "Questions"
+	ReportIDField   DynamoDBField = "ReportID"
+	ReportTypeField DynamoDBField = "ReportType"
+	TitleField      DynamoDBField = "Title"
+	CityField       DynamoDBField = "City"
+	PartsField      DynamoDBField = "Parts"
+	HeadersField    DynamoDBField = "Headers"
+	SectionsField   DynamoDBField = "Sections"
+	QuestionsField  DynamoDBField = "Questions"
+	IndexField      DynamoDBField = "Index"
 )
 
 func (field DynamoDBField) String() string {
-    return string(field)
+	return string(field)
 }
