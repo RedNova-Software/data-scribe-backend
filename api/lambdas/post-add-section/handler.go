@@ -17,6 +17,7 @@ import (
 type AddSectionRequest struct {
 	ReportID     string              `json:"reportID"`
 	PartIndex    uint16              `json:"partIndex"`
+	SectionIndex uint16              `json:"sectionIndex"`
 	SectionTitle string              `json:"sectionTitle"`
 	Questions    []models.Question   `json:"questions"`
 	TextOutputs  []models.TextOutput `json:"textOutputs"`
@@ -43,9 +44,29 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	tableName := os.Getenv(string(constants.ReportTable))
 
-	err = util.AddSectionToPart(tableName, req.ReportID, req.PartIndex, req.SectionTitle, req.Questions, req.TextOutputs)
+	updatedIndices, err := util.ModifyPartSectionIndices(tableName, req.ReportID, req.PartIndex, req.SectionIndex, true) // Increment all index values equal and above this section
 
 	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers:    constants.CorsHeaders,
+			Body:       "Internal Server Error: " + err.Error(),
+		}, nil
+	}
+
+	newSection := models.Section{
+		Title:       req.SectionTitle,
+		Index:       req.SectionIndex,
+		Questions:   req.Questions,
+		TextOutputs: req.TextOutputs,
+	}
+
+	err = util.AddSectionToPart(tableName, req.ReportID, req.PartIndex, newSection)
+
+	if err != nil {
+		if updatedIndices {
+			util.ModifyPartSectionIndices(tableName, req.ReportID, req.PartIndex, req.SectionIndex, false) // Return indices of parts back to normal. Maybe handle this response soon
+		}
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Headers:    constants.CorsHeaders,

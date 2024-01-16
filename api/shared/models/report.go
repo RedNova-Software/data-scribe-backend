@@ -23,9 +23,11 @@ type TextOutput struct {
 }
 
 type Section struct {
-	Title       string
-	Questions   []Question
-	TextOutputs []TextOutput
+	Title           string
+	Index           uint16
+	OutputGenerated bool
+	Questions       []Question
+	TextOutputs     []TextOutput
 }
 
 type Part struct {

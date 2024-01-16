@@ -133,8 +133,67 @@ func ModifyReportPartIndices(tableName string, reportID string, newIndex uint16,
 	return false, nil
 }
 
+// If increment is true, all Part indices equal to or above the newIndex will be incremented.
+// If false, everything larger will be decremented.
+func ModifyPartSectionIndices(tableName string, reportID string, partIndex uint16, newSectionIndex uint16, increment bool) (bool, error) {
+	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	report, err := GetReport(tableName, "ReportID", reportID)
+
+	if err != nil {
+		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return false, fmt.Errorf("report not found: %v", err)
+	}
+
+	var part *models.Part
+
+	for _, searchPart := range report.Parts {
+		if searchPart.Index == partIndex {
+			part = &searchPart
+			break
+		}
+	}
+
+	updated := false
+	if part != nil {
+
+		for i, section := range part.Sections {
+			if increment && section.Index >= newSectionIndex {
+				part.Sections[i].Index++
+				updated = true
+			} else if !increment && section.Index > newSectionIndex {
+				part.Sections[i].Index--
+				updated = true
+			}
+		}
+	}
+
+	if updated {
+		av, err := dynamodbattribute.MarshalMap(report)
+		if err != nil {
+			return false, err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // AddSectionToPart adds a Section to a Part with a specific index in a DynamoDB table.
-func AddSectionToPart(tableName string, reportID string, partIndex uint16, sectionTitle string, questions []models.Question, textOutputs []models.TextOutput) error {
+func AddSectionToPart(tableName string, reportID string, partIndex uint16, newSection models.Section) error {
 	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
 	if err != nil {
 		return err
@@ -168,11 +227,6 @@ func AddSectionToPart(tableName string, reportID string, partIndex uint16, secti
 	partFound := false
 	for i, part := range report.Parts {
 		if part.Index == partIndex {
-			newSection := models.Section{
-				Title:       sectionTitle,
-				Questions:   questions,
-				TextOutputs: textOutputs,
-			}
 			report.Parts[i].Sections = append(report.Parts[i].Sections, newSection)
 			partFound = true
 			break
