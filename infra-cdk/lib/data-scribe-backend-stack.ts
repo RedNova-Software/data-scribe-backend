@@ -97,20 +97,12 @@ export class DataScribeBackendStack extends cdk.Stack {
     });
 
     // Set openAI key as env variable
-    let openAIKeyPath = path.join(__dirname, "../../keys/openai-key.txt");
-    let openAIKey;
-
-    fs.readFile(openAIKeyPath, "utf8", (err, data) => {
-      if (err) {
-        console.error(
-          "\x1b[31m%s\x1b[0m",
-          "You are most likely missing your openai key. Place it in /keys/openai-key.txt"
-        );
-        process.exit();
-      }
-
-      openAIKeyPath = data;
+    const openAIKeyPath = path.join(__dirname, "../../keys/openai-key.txt");
+    const openAIKey = fs.readFileSync(openAIKeyPath, {
+      encoding: "utf8",
+      flag: "r",
     });
+
     const generateSectionLambda = new lambda.Function(
       this,
       "GenerateSectionLambda",
@@ -124,6 +116,7 @@ export class DataScribeBackendStack extends cdk.Stack {
           REPORT_TABLE: reportTable.tableName,
           OPENAI_API_KEY: openAIKey!,
         },
+        timeout: cdk.Duration.minutes(5),
       }
     );
 
