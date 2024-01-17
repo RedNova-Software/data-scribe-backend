@@ -4,8 +4,10 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import path = require("path");
+import * as fs from "fs";
 import { DynamoDBTable, ReportTable } from "./constants/dynamodb-constants";
 import * as iam from "aws-cdk-lib/aws-iam";
+import { exit } from "process";
 
 export class DataScribeBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -94,6 +96,21 @@ export class DataScribeBackendStack extends cdk.Stack {
       },
     });
 
+    // Set openAI key as env variable
+    let openAIKeyPath = path.join(__dirname, "../../keys/openai-key.txt");
+    let openAIKey;
+
+    fs.readFile(openAIKeyPath, "utf8", (err, data) => {
+      if (err) {
+        console.error(
+          "\x1b[31m%s\x1b[0m",
+          "You are most likely missing your openai key. Place it in /keys/openai-key.txt"
+        );
+        process.exit();
+      }
+
+      openAIKeyPath = data;
+    });
     const generateSectionLambda = new lambda.Function(
       this,
       "GenerateSectionLambda",
@@ -105,6 +122,7 @@ export class DataScribeBackendStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: reportTable.tableName,
+          OPENAI_API_KEY: openAIKey!,
         },
       }
     );

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"api/shared/interfaces"
 	"api/shared/models"
 	"errors"
 	"strings"
@@ -28,6 +29,43 @@ func GenerateSectionStaticText(section *models.Section, answers []models.Answer)
 	}
 }
 
+func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.Section, answers []models.Answer) error {
+	// Splice answers into prompts
+	for _, answer := range answers {
+		// Find the matching question
+		question, err := FindQuestion(section.Questions, answer.QuestionIndex)
+		if err != nil {
+			continue // or handle the error as you see fit
+		}
+
+		// Update question answer
+		question.Answer = answer.Answer
+
+		// Generate static text
+		for i, textOutput := range section.TextOutputs {
+			if textOutput.Type == models.Generator {
+				// Assuming GenerateStaticText modifies textOutput in place
+				GenerateGeneratorInput(&section.TextOutputs[i], question.Label, answer.Answer)
+			}
+		}
+	}
+
+	// Generate the outputs
+	for i, textOutput := range section.TextOutputs {
+		if textOutput.Type == models.Generator {
+			// Assuming GenerateStaticText modifies textOutput in place
+			result, err := generator.GeneratePromptResponse(section.TextOutputs[i].Input)
+
+			if err != nil {
+				return err
+			}
+
+			section.TextOutputs[i].Result = result
+		}
+	}
+	return nil
+}
+
 // FindQuestion finds a question by its index in a slice of questions
 func FindQuestion(questions []models.Question, index uint16) (*models.Question, error) {
 	for i := range questions {
@@ -51,7 +89,17 @@ func GenerateStaticText(textOutput *models.TextOutput, questionLabel, answer str
 	} else {
 		textOutput.Result = strings.ReplaceAll(textOutput.Result, pattern, answer)
 	}
+}
 
+// This function allows users to define answers in their openai prompts as well
+func GenerateGeneratorInput(textOutput *models.TextOutput, questionLabel, answer string) {
+	// Define the pattern to be replaced
+	pattern := "**" + questionLabel
+
+	// Replace the pattern with the answer in textOutput.Input
+	// If first pass, set it to the input, else set it to the generated output replaced.
+	// This way, you can splice question answers in multiple inputs
+	textOutput.Input = strings.ReplaceAll(textOutput.Input, pattern, answer)
 }
 
 // GetSection returns the section from a report based on partIndex and sectionIndex.
@@ -77,4 +125,15 @@ func GetSection(report *models.Report, partIndex uint16, sectionIndex uint16) (*
 	}
 
 	return nil, errors.New("section not found")
+}
+
+// ResetTextOutputResults sets all TextOutput.Result fields to an empty string in the provided section.
+func ResetTextOutputResults(section *models.Section) {
+	if section == nil {
+		return // or handle the error as you see fit
+	}
+
+	for i := range section.TextOutputs {
+		section.TextOutputs[i].Result = ""
+	}
 }

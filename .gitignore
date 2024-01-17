@@ -12,3 +12,6 @@ infra-cdk/bin/lambdas/*
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Sensitive keys
+keys/*

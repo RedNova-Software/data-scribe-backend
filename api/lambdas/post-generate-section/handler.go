@@ -43,6 +43,14 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	err = util.GenerateSection(tableName, req.ReportID, req.PartIndex, req.SectionIndex, req.Answers)
 
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers:    constants.CorsHeaders,
+			Body:       "Error generating section: " + err.Error(),
+		}, nil
+	}
+
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,

@@ -272,7 +272,18 @@ func GenerateSection(tableName string, reportID string, partIndex uint16, sectio
 		return fmt.Errorf("error getting section: %v", err)
 	}
 
+	// Reset the text output results so that they can be created from input again
+	ResetTextOutputResults(section)
+
 	GenerateSectionStaticText(section, answers)
+
+	generator := OpenAiGenerator{}
+
+	err = GenerateSectionGeneratorText(generator, section, answers)
+
+	if err != nil {
+		return fmt.Errorf("error creating generator outputs: %v", err)
+	}
 
 	// Set output generated after all sections generated successfully
 	section.OutputGenerated = true
