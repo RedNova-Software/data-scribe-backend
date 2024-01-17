@@ -39,7 +39,6 @@ lambdaFolders.forEach((folder) => {
         return;
       }
       console.log(`Successfully compiled Lambda function: ${folder}`);
-      console.log(`stdout: ${stdout}`);
     }
   );
 });
