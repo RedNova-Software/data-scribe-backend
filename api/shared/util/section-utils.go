@@ -72,9 +72,11 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 	}
 
 	// Restore original inputs
+	originalInputIndex := 0
 	for i, textOutput := range section.TextOutputs {
 		if textOutput.Type == models.Generator {
-			section.TextOutputs[i].Input = originalInputs[i]
+			section.TextOutputs[i].Input = originalInputs[originalInputIndex]
+			originalInputIndex += 1
 		}
 	}
 
