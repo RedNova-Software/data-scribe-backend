@@ -30,6 +30,14 @@ func GenerateSectionStaticText(section *models.Section, answers []models.Answer)
 }
 
 func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.Section, answers []models.Answer) error {
+	// Preserve original inputs as to be able to re-create the section later with different answers to the questions.
+	originalInputs := []string{}
+	for _, textOutput := range section.TextOutputs {
+		if textOutput.Type == models.Generator {
+			originalInputs = append(originalInputs, textOutput.Input)
+		}
+	}
+
 	// Splice answers into prompts
 	for _, answer := range answers {
 		// Find the matching question
@@ -41,10 +49,9 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 		// Update question answer
 		question.Answer = answer.Answer
 
-		// Generate static text
+		// Generate the inputs with question answers spliced in
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Generator {
-				// Assuming GenerateStaticText modifies textOutput in place
 				GenerateGeneratorInput(&section.TextOutputs[i], question.Label, answer.Answer)
 			}
 		}
@@ -63,6 +70,14 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 			section.TextOutputs[i].Result = result
 		}
 	}
+
+	// Restore original inputs
+	for i, textOutput := range section.TextOutputs {
+		if textOutput.Type == models.Generator {
+			section.TextOutputs[i].Input = originalInputs[i]
+		}
+	}
+
 	return nil
 }
 
