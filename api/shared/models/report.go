@@ -1,5 +1,10 @@
 package models
 
+type Answer struct {
+	QuestionIndex uint16
+	Answer        string
+}
+
 type Question struct {
 	Label    string
 	Index    uint16

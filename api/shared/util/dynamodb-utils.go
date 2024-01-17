@@ -255,6 +255,43 @@ func AddSectionToPart(tableName string, reportID string, partIndex uint16, newSe
 	return nil
 }
 
+func GenerateSection(tableName string, reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
+	report, err := GetReport(tableName, "ReportID", reportID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	section, err := GetSection(report, partIndex, sectionIndex)
+
+	if err != nil {
+		return fmt.Errorf("error getting section: %v", err)
+	}
+
+	GenerateSectionStaticText(section, answers)
+
+	// Set output generated after all sections generated successfully
+	section.OutputGenerated = true
+
+	// Update the report in DynamoDB
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	return err
+}
+
 func GetReport(tableName, keyName, keyValue string) (*models.Report, error) {
 	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
 

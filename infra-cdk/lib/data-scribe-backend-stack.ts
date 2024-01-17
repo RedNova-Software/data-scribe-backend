@@ -94,11 +94,27 @@ export class DataScribeBackendStack extends cdk.Stack {
       },
     });
 
+    const generateSectionLambda = new lambda.Function(
+      this,
+      "GenerateSectionLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../bin/lambdas/post-generate-section")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: reportTable.tableName,
+        },
+      }
+    );
+
     reportTable.grantReadData(getReportByIDLambda);
     reportTable.grantReadData(getAllReportsLambda);
     reportTable.grantWriteData(createReportLambda);
     reportTable.grantReadWriteData(addPartLambda);
     reportTable.grantReadWriteData(addSectionLambda);
+    reportTable.grantReadWriteData(generateSectionLambda);
 
     const gateway = new apigateway.RestApi(this, "DataScribeGateway", {
       defaultCorsPreflightOptions: {
@@ -154,6 +170,12 @@ export class DataScribeBackendStack extends cdk.Stack {
     addSectionEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(addSectionLambda)
+    );
+
+    const generateSectionEndpoint = sectionsResource.addResource("generate");
+    generateSectionEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(generateSectionLambda)
     );
   }
 }
