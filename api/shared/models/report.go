@@ -1,30 +1,44 @@
 package models
 
-type Question struct {
-	Question  string
-	Answer    string
-	DataLabel string
+type Answer struct {
+	QuestionIndex uint16
+	Answer        string
 }
 
-type SubSection struct {
-	Title     string
-	Questions []Question
+type Question struct {
+	Label    string
+	Index    uint16
+	Question string
+	Answer   string
+}
+
+type TextOutputType string
+
+const (
+	Generator TextOutputType = "Generator"
+	Static    TextOutputType = "Static"
+)
+
+type TextOutput struct {
+	Title  string
+	Index  uint16
+	Type   TextOutputType
+	Input  string
+	Result string
 }
 
 type Section struct {
-	Title       string
-	SubSections []SubSection
+	Title           string
+	Index           uint16
+	OutputGenerated bool
+	Questions       []Question
+	TextOutputs     []TextOutput
 }
 
 type Part struct {
 	Title    string
 	Index    uint16
 	Sections []Section
-}
-
-type TextOutput struct {
-	Name   string
-	Output string
 }
 
 type ModelInfo struct {

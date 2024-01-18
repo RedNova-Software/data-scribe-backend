@@ -3,6 +3,7 @@ package util
 import (
 	"api/shared/constants"
 	"api/shared/models"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -130,6 +131,176 @@ func ModifyReportPartIndices(tableName string, reportID string, newIndex uint16,
 	}
 
 	return false, nil
+}
+
+// If increment is true, all Part indices equal to or above the newIndex will be incremented.
+// If false, everything larger will be decremented.
+func ModifyPartSectionIndices(tableName string, reportID string, partIndex uint16, newSectionIndex uint16, increment bool) (bool, error) {
+	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	report, err := GetReport(tableName, "ReportID", reportID)
+
+	if err != nil {
+		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return false, fmt.Errorf("report not found: %v", err)
+	}
+
+	var part *models.Part
+
+	for _, searchPart := range report.Parts {
+		if searchPart.Index == partIndex {
+			part = &searchPart
+			break
+		}
+	}
+
+	updated := false
+	if part != nil {
+
+		for i, section := range part.Sections {
+			if increment && section.Index >= newSectionIndex {
+				part.Sections[i].Index++
+				updated = true
+			} else if !increment && section.Index > newSectionIndex {
+				part.Sections[i].Index--
+				updated = true
+			}
+		}
+	}
+
+	if updated {
+		av, err := dynamodbattribute.MarshalMap(report)
+		if err != nil {
+			return false, err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// AddSectionToPart adds a Section to a Part with a specific index in a DynamoDB table.
+func AddSectionToPart(tableName string, reportID string, partIndex uint16, newSection models.Section) error {
+	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	if err != nil {
+		return err
+	}
+
+	// Retrieve the Report item
+	result, err := dynamoDBClient.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"ReportID": {
+				S: aws.String(reportID),
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if result.Item == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	// Unmarshal the Report
+	var report models.Report
+	err = dynamodbattribute.UnmarshalMap(result.Item, &report)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal dynamodb report: %v", err)
+	}
+
+	// Find the Part and add the Section
+	partFound := false
+	for i, part := range report.Parts {
+		if part.Index == partIndex {
+			report.Parts[i].Sections = append(report.Parts[i].Sections, newSection)
+			partFound = true
+			break
+		}
+	}
+
+	if !partFound {
+		return errors.New("part not found")
+	}
+
+	// Marshal the updated Report back to a map
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return fmt.Errorf("unable to marshall report into dynamodb attribute: %v", err)
+	}
+
+	// Update the Report in the DynamoDB table
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	if err != nil {
+		return fmt.Errorf("error updating report item in dynamodb: %v", err)
+	}
+
+	return nil
+}
+
+func GenerateSection(tableName string, reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
+	report, err := GetReport(tableName, "ReportID", reportID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	section, err := GetSection(report, partIndex, sectionIndex)
+
+	if err != nil {
+		return fmt.Errorf("error getting section: %v", err)
+	}
+
+	// Reset the text output results so that they can be created from input again
+	ResetTextOutputResults(section)
+
+	GenerateSectionStaticText(section, answers)
+
+	generator := OpenAiGenerator{}
+
+	err = GenerateSectionGeneratorText(generator, section, answers)
+
+	if err != nil {
+		return fmt.Errorf("error creating generator outputs: %v", err)
+	}
+
+	// Set output generated after all sections generated successfully
+	section.OutputGenerated = true
+
+	// Update the report in DynamoDB
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	return err
 }
 
 func GetReport(tableName, keyName, keyValue string) (*models.Report, error) {
