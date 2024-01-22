@@ -1,13 +1,8 @@
-
-
 export enum DynamoDBTable {
-    ReportTable = "ReportTable"
+  ReportTable = 'ReportTable'
 }
 
 export enum ReportTable {
-    ReportID = "report-id",
-    ReportType = "report-type"
+  ReportID = 'report-id',
+  ReportType = 'report-type'
 }
-
-
-
