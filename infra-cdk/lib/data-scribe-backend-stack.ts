@@ -1,192 +1,189 @@
-import * as cdk from "aws-cdk-lib";
-import { Construct } from "constructs";
-import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import path = require("path");
-import * as fs from "fs";
-import { DynamoDBTable, ReportTable } from "./constants/dynamodb-constants";
-import * as iam from "aws-cdk-lib/aws-iam";
-import { exit } from "process";
+import * as cdk from 'aws-cdk-lib'
+import { type Construct } from 'constructs'
+import * as lambda from 'aws-cdk-lib/aws-lambda'
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+import * as apigateway from 'aws-cdk-lib/aws-apigateway'
+import path = require('path')
+import * as fs from 'fs'
 
 export class DataScribeBackendStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+  constructor (scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props)
 
-    const reportTable = new dynamodb.Table(this, "ReportTable", {
-      partitionKey: { name: "ReportID", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
+    const reportTable = new dynamodb.Table(this, 'ReportTable', {
+      partitionKey: { name: 'ReportID', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+    })
 
-    const createReportLambda = new lambda.Function(this, "CreateReportLambda", {
+    const createReportLambda = new lambda.Function(this, 'CreateReportLambda', {
       code: lambda.Code.fromAsset(
-        path.join(__dirname, "../bin/lambdas/post-create-report")
+        path.join(__dirname, '../bin/lambdas/post-create-report')
       ),
-      handler: "main",
+      handler: 'main',
       runtime: lambda.Runtime.PROVIDED_AL2023,
       environment: {
-        REPORT_TABLE: reportTable.tableName,
-      },
-    });
+        REPORT_TABLE: reportTable.tableName
+      }
+    })
 
     const getReportByIDLambda = new lambda.Function(
       this,
-      "GetReportByIDLambda",
+      'GetReportByIDLambda',
       {
         code: lambda.Code.fromAsset(
-          path.join(__dirname, "../bin/lambdas/get-report-by-id")
+          path.join(__dirname, '../bin/lambdas/get-report-by-id')
         ),
-        handler: "main",
+        handler: 'main',
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
-          REPORT_TABLE: reportTable.tableName,
-        },
+          REPORT_TABLE: reportTable.tableName
+        }
       }
-    );
+    )
 
     const getAllReportsLambda = new lambda.Function(
       this,
-      "GetAllReportsLambda",
+      'GetAllReportsLambda',
       {
         code: lambda.Code.fromAsset(
-          path.join(__dirname, "../bin/lambdas/get-all-reports")
+          path.join(__dirname, '../bin/lambdas/get-all-reports')
         ),
-        handler: "main",
+        handler: 'main',
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
-          REPORT_TABLE: reportTable.tableName,
-        },
+          REPORT_TABLE: reportTable.tableName
+        }
       }
-    );
+    )
 
     const getAllReportTypesLambda = new lambda.Function(
       this,
-      "GetAllReportTypesLambda",
+      'GetAllReportTypesLambda',
       {
         code: lambda.Code.fromAsset(
-          path.join(__dirname, "../bin/lambdas/get-all-report-types")
+          path.join(__dirname, '../bin/lambdas/get-all-report-types')
         ),
-        handler: "main",
+        handler: 'main',
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
-          REPORT_TABLE: reportTable.tableName,
-        },
+          REPORT_TABLE: reportTable.tableName
+        }
       }
-    );
+    )
 
-    const addPartLambda = new lambda.Function(this, "AddPartLambda", {
+    const addPartLambda = new lambda.Function(this, 'AddPartLambda', {
       code: lambda.Code.fromAsset(
-        path.join(__dirname, "../bin/lambdas/post-add-part")
+        path.join(__dirname, '../bin/lambdas/post-add-part')
       ),
-      handler: "main",
+      handler: 'main',
       runtime: lambda.Runtime.PROVIDED_AL2023,
       environment: {
-        REPORT_TABLE: reportTable.tableName,
-      },
-    });
+        REPORT_TABLE: reportTable.tableName
+      }
+    })
 
-    const addSectionLambda = new lambda.Function(this, "AddSectionLambda", {
+    const addSectionLambda = new lambda.Function(this, 'AddSectionLambda', {
       code: lambda.Code.fromAsset(
-        path.join(__dirname, "../bin/lambdas/post-add-section")
+        path.join(__dirname, '../bin/lambdas/post-add-section')
       ),
-      handler: "main",
+      handler: 'main',
       runtime: lambda.Runtime.PROVIDED_AL2023,
       environment: {
-        REPORT_TABLE: reportTable.tableName,
-      },
-    });
+        REPORT_TABLE: reportTable.tableName
+      }
+    })
 
     // Set openAI key as env variable
-    const openAIKeyPath = path.join(__dirname, "../../keys/openai-key.txt");
+    const openAIKeyPath = path.join(__dirname, '../../keys/openai-key.txt')
     const openAIKey = fs.readFileSync(openAIKeyPath, {
-      encoding: "utf8",
-      flag: "r",
-    });
+      encoding: 'utf8',
+      flag: 'r'
+    })
 
     const generateSectionLambda = new lambda.Function(
       this,
-      "GenerateSectionLambda",
+      'GenerateSectionLambda',
       {
         code: lambda.Code.fromAsset(
-          path.join(__dirname, "../bin/lambdas/post-generate-section")
+          path.join(__dirname, '../bin/lambdas/post-generate-section')
         ),
-        handler: "main",
+        handler: 'main',
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: reportTable.tableName,
-          OPENAI_API_KEY: openAIKey!,
+          OPENAI_API_KEY: openAIKey
         },
-        timeout: cdk.Duration.minutes(5),
+        timeout: cdk.Duration.minutes(5)
       }
-    );
+    )
 
-    reportTable.grantReadData(getReportByIDLambda);
-    reportTable.grantReadData(getAllReportsLambda);
-    reportTable.grantWriteData(createReportLambda);
-    reportTable.grantReadWriteData(addPartLambda);
-    reportTable.grantReadWriteData(addSectionLambda);
-    reportTable.grantReadWriteData(generateSectionLambda);
+    reportTable.grantReadData(getReportByIDLambda)
+    reportTable.grantReadData(getAllReportsLambda)
+    reportTable.grantWriteData(createReportLambda)
+    reportTable.grantReadWriteData(addPartLambda)
+    reportTable.grantReadWriteData(addSectionLambda)
+    reportTable.grantReadWriteData(generateSectionLambda)
 
-    const gateway = new apigateway.RestApi(this, "DataScribeGateway", {
+    const gateway = new apigateway.RestApi(this, 'DataScribeGateway', {
       defaultCorsPreflightOptions: {
-        allowOrigins: ["*"],
-        allowMethods: ["POST", "GET"],
-      },
-    });
+        allowOrigins: ['*'],
+        allowMethods: ['POST', 'GET']
+      }
+    })
 
-    const reportResource = gateway.root.addResource("reports");
-    const partResource = reportResource.addResource("parts");
-    const sectionsResource = partResource.addResource("sections");
+    const reportResource = gateway.root.addResource('reports')
+    const partResource = reportResource.addResource('parts')
+    const sectionsResource = partResource.addResource('sections')
 
     // Get endpoints
 
-    const getReportByIDEndpoint = reportResource.addResource("get");
+    const getReportByIDEndpoint = reportResource.addResource('get')
     getReportByIDEndpoint.addMethod(
-      "GET",
+      'GET',
       new apigateway.LambdaIntegration(getReportByIDLambda),
       {
         requestParameters: {
-          "method.request.querystring.reportID": true,
-        },
+          'method.request.querystring.reportID': true
+        }
       }
-    );
+    )
 
-    const getAllReportsEndpoint = reportResource.addResource("all");
+    const getAllReportsEndpoint = reportResource.addResource('all')
     getAllReportsEndpoint.addMethod(
-      "GET",
+      'GET',
       new apigateway.LambdaIntegration(getAllReportsLambda)
-    );
+    )
 
-    const getAllReportTypesEndpoint = reportResource.addResource("types");
+    const getAllReportTypesEndpoint = reportResource.addResource('types')
     getAllReportTypesEndpoint.addMethod(
-      "GET",
+      'GET',
       new apigateway.LambdaIntegration(getAllReportTypesLambda)
-    );
+    )
 
     // Post endpoints
 
-    const createNewReportEndpoint = reportResource.addResource("create");
+    const createNewReportEndpoint = reportResource.addResource('create')
     createNewReportEndpoint.addMethod(
-      "POST",
+      'POST',
       new apigateway.LambdaIntegration(createReportLambda)
-    );
+    )
 
-    const addPartEndpoint = partResource.addResource("add");
+    const addPartEndpoint = partResource.addResource('add')
     addPartEndpoint.addMethod(
-      "POST",
+      'POST',
       new apigateway.LambdaIntegration(addPartLambda)
-    );
+    )
 
-    const addSectionEndpoint = sectionsResource.addResource("add");
+    const addSectionEndpoint = sectionsResource.addResource('add')
     addSectionEndpoint.addMethod(
-      "POST",
+      'POST',
       new apigateway.LambdaIntegration(addSectionLambda)
-    );
+    )
 
-    const generateSectionEndpoint = sectionsResource.addResource("generate");
+    const generateSectionEndpoint = sectionsResource.addResource('generate')
     generateSectionEndpoint.addMethod(
-      "POST",
+      'POST',
       new apigateway.LambdaIntegration(generateSectionLambda)
-    );
+    )
   }
 }
