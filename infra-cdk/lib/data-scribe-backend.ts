@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
-import { accountID } from "../lib/constants/env-constants";
-import { DynamoDBStack } from "../lib/dynamodb/dynamodb-stack";
-import { LambdasStack } from "../lib/lambda/lambda-stack";
-import { GatewayStack } from "../lib/gateway/gateway-stack";
+import { accountID } from "./constants/env-constants";
+import { DynamoDBStack } from "./dynamodb/dynamodb-stack";
+import { LambdasStack } from "./lambda/lambda-stack";
+import { GatewayStack } from "./gateway/gateway-stack";
 
 const app = new cdk.App();
 const env = {
