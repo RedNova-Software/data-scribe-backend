@@ -25,7 +25,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	report, err := util.GetReport("ReportID", reportID)
+	report, err := util.GetReport(reportID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

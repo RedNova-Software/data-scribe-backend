@@ -4,6 +4,7 @@ import (
 	"api/shared/constants"
 	"api/shared/models"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,8 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-func GetTemplate(tableName, keyName, keyValue string) (*models.Template, error) {
+func GetTemplate(templateID string) (*models.Template, error) {
+	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	keyName := constants.TemplateIDField
 
 	if err != nil {
 		return nil, err
@@ -23,7 +26,7 @@ func GetTemplate(tableName, keyName, keyValue string) (*models.Template, error) 
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			keyName: {
-				S: aws.String(keyValue),
+				S: aws.String(templateID),
 			},
 		},
 	}
@@ -50,7 +53,8 @@ func GetTemplate(tableName, keyName, keyValue string) (*models.Template, error) 
 	return &template, nil
 }
 
-func GetAllTemplates(tableName string) ([]models.Report, error) {
+func GetAllTemplates() ([]models.Report, error) {
+	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	if err != nil {

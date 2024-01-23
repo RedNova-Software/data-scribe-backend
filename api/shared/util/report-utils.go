@@ -94,7 +94,7 @@ func AddPartToReport(
 func ModifyReportPartIndices(reportID string, newIndex uint16, increment bool) (bool, error) {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
-	report, err := GetReport(constants.ReportIDField, reportID)
+	report, err := GetReport(reportID)
 
 	if err != nil {
 		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -142,7 +142,7 @@ func ModifyReportPartIndices(reportID string, newIndex uint16, increment bool) (
 func ModifyPartSectionIndices(reportID string, partIndex uint16, newSectionIndex uint16, increment bool) (bool, error) {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
-	report, err := GetReport(constants.ReportIDField, reportID)
+	report, err := GetReport(reportID)
 
 	if err != nil {
 		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -261,9 +261,10 @@ func AddSectionToReportPart(reportID string, partIndex uint16, newSection models
 	return nil
 }
 
-func GetReport(keyName, keyValue string) (*models.Report, error) {
+func GetReport(reportID string) (*models.Report, error) {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	const keyName = constants.ReportIDField
 
 	if err != nil {
 		return nil, err
@@ -274,7 +275,7 @@ func GetReport(keyName, keyValue string) (*models.Report, error) {
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			keyName: {
-				S: aws.String(keyValue),
+				S: aws.String(reportID),
 			},
 		},
 	}

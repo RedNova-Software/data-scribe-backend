@@ -15,7 +15,7 @@ import (
 )
 
 func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
-	report, err := GetReport(constants.ReportIDField, reportID)
+	report, err := GetReport(reportID)
 
 	if err != nil {
 		return fmt.Errorf("error getting report from DynamoDB: %v", err)
