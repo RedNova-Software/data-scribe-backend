@@ -3,6 +3,8 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import { type Construct } from "constructs";
 import type * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as logs from "aws-cdk-lib/aws-logs";
+import * as iam from "aws-cdk-lib/aws-iam";
 import path = require("path");
 import { userPoolId } from "../constants/cognito-constants";
 
@@ -20,11 +22,26 @@ export class GatewayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: GatewayStackProps) {
     super(scope, id, props);
 
+    const logGroup = new logs.LogGroup(this, "ApiGatewayLogGroup", {
+      retention: logs.RetentionDays.ONE_WEEK, // Set the retention as needed
+    });
+
+    const stageOptions: apigateway.StageOptions = {
+      loggingLevel: apigateway.MethodLoggingLevel.INFO,
+      dataTraceEnabled: false,
+      metricsEnabled: true,
+      tracingEnabled: false, // For X-Ray tracing
+      accessLogDestination: new apigateway.LogGroupLogDestination(logGroup),
+      accessLogFormat: apigateway.AccessLogFormat.clf(), // Common Log Format
+    };
+
     const gateway = new apigateway.RestApi(this, "DataScribeGateway", {
       defaultCorsPreflightOptions: {
-        allowOrigins: ["*"],
-        allowMethods: ["POST", "GET"],
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
       },
+      cloudWatchRole: true, // Needed to output logs
+      deployOptions: stageOptions,
     });
 
     const userPool = cognito.UserPool.fromUserPoolId(
