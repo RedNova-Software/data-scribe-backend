@@ -30,5 +30,5 @@ type TemplatePart struct {
 type Template struct {
 	TemplateID string
 	Title      string
-	Parts      []ReportPart
+	Parts      []TemplatePart
 }

@@ -13,10 +13,8 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreateReportRequest struct {
-	ReportType string `json:"reportType"`
-	Title      string `json:"title"`
-	City       string `json:"city"`
+type CreateTemplateRequest struct {
+	Title string `json:"title"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -28,7 +26,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	var req CreateReportRequest
+	var req CreateTemplateRequest
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -38,25 +36,23 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ReportType == "" || req.Title == "" || req.City == "" {
+	if req.Title == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body:       "Bad Request: reportType, title and city are required.",
+			Body:       "Bad Request: title is required.",
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
-	reportID := uuid.New().String()
+	templateID := uuid.New().String()
 
-	report := models.Report{
-		ReportID:   reportID,
-		ReportType: req.ReportType,
+	template := models.Template{
+		TemplateID: templateID,
 		Title:      req.Title,
-		City:       req.City,
-		Parts:      make([]models.ReportPart, 0),
+		Parts:      make([]models.TemplatePart, 0),
 	}
 
-	err = util.PutNewReport(report)
+	err = util.PutNewTemplate(template)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -68,7 +64,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
-		Body:       "Empty report created successfully with ID: " + reportID,
+		Body:       "Empty template created successfully with ID: " + templateID,
 		Headers:    constants.CorsHeaders,
 	}, nil
 }

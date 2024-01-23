@@ -12,6 +12,35 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
+func PutNewTemplate(template models.Template) error {
+	tableName := os.Getenv(constants.TemplateTable)
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return err
+	}
+
+	templateAV, err := dynamodbattribute.MarshalMap(template)
+	if err != nil {
+		return err
+	}
+
+	// Needed to set "Parts" to empty list
+	// For more info, see https://github.com/aws/aws-sdk-go/issues/682
+	templateAV[constants.PartsField] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
+
+	input := &dynamodb.PutItemInput{
+		Item:      templateAV,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(input)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetTemplate(templateID string) (*models.Template, error) {
 	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
