@@ -47,7 +47,7 @@ func GetTemplate(templateID string) (*models.Template, error) {
 	keyName := constants.TemplateIDField
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
 	// Create a DynamoDB input structure for the GetItem operation.
@@ -87,7 +87,7 @@ func GetAllTemplates() ([]models.Report, error) {
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
 	// Fields to retrieve

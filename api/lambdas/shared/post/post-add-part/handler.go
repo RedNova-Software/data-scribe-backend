@@ -13,9 +13,10 @@ import (
 )
 
 type AddPartRequest struct {
-	ReportID  string `json:"reportID"`
-	Index     uint16 `json:"partIndex"`
-	PartTitle string `json:"partTitle"`
+	ItemType  constants.ItemType `json:"itemType"`
+	ItemID    string             `json:"itemID"`
+	Index     uint16             `json:"partIndex"`
+	PartTitle string             `json:"partTitle"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -29,15 +30,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ReportID == "" || req.PartTitle == "" || req.Index < 0 {
+	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.Index < 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: reportID, partTitle, and partIndex are required.",
+			Body:       "Bad Request: itemType, itemID, partTitle, and partIndex are required.",
 		}, nil
 	}
 
-	updatedIndices, err := util.ModifyReportPartIndices(req.ReportID, req.Index, true) // Increment all index values equal and above this part
+	updatedIndices, err := util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, true) // Increment all index values equal and above this part
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -53,10 +54,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		Sections: []models.ReportSection{},
 	}
 
-	err = util.AddPartToReport(req.ReportID, newPart)
+	err = util.AddPartToItem(req.ItemType, req.ItemID, newPart)
+
 	if err != nil {
 		if updatedIndices {
-			util.ModifyReportPartIndices(req.ReportID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
+			util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
 		}
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -68,7 +70,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Part added successfully to report with ID: " + req.ReportID,
+		Body:       "Part added successfully to report with ID: " + req.ItemID,
 	}, nil
 }
 

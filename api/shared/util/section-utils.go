@@ -15,6 +15,13 @@ import (
 )
 
 func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
+	tableName := os.Getenv(constants.ReportTable)
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
 	report, err := GetReport(reportID)
 
 	if err != nil {
@@ -52,9 +59,6 @@ func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, ans
 	if err != nil {
 		return err
 	}
-
-	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
 		TableName: aws.String(tableName),

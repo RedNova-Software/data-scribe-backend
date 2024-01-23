@@ -3,7 +3,6 @@ package util
 import (
 	"api/shared/constants"
 	"api/shared/models"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -17,7 +16,7 @@ func PutNewReport(report models.Report) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
 	reportAV, err := dynamodbattribute.MarshalMap(report)
@@ -42,232 +41,13 @@ func PutNewReport(report models.Report) error {
 	return nil
 }
 
-func AddPartToReport(
-	reportID string,
-	newPart models.ReportPart,
-) error {
-	tableName := os.Getenv(constants.ReportTable)
-
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
-	if err != nil {
-		return err
-	}
-
-	newPartAV, err := dynamodbattribute.MarshalMap(newPart)
-	if err != nil {
-		return err
-	}
-
-	newPartAV[constants.SectionsField] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
-
-	input := &dynamodb.UpdateItemInput{
-		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			constants.ReportIDField: {
-				S: aws.String(reportID),
-			},
-		},
-		ExpressionAttributeNames: map[string]*string{
-			"#p": aws.String(constants.PartsField),
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":newPart": {
-				L: []*dynamodb.AttributeValue{
-					{M: newPartAV},
-				},
-			},
-		},
-		UpdateExpression: aws.String("SET #p = list_append(#p, :newPart)"),
-		ReturnValues:     aws.String("UPDATED_NEW"),
-	}
-
-	_, err = dynamoDBClient.UpdateItem(input)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// If increment is true, all Part indices equal to or above the newIndex will be incremented.
-// If false, everything larger will be decremented.
-func ModifyReportPartIndices(reportID string, newIndex uint16, increment bool) (bool, error) {
-	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
-	report, err := GetReport(reportID)
-
-	if err != nil {
-		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
-	}
-
-	if report == nil {
-		return false, fmt.Errorf("report not found: %v", err)
-	}
-
-	updated := false
-	for i, part := range report.Parts {
-		if increment && part.Index >= newIndex {
-			report.Parts[i].Index++
-			updated = true
-		} else if !increment && part.Index > newIndex {
-			report.Parts[i].Index--
-			updated = true
-		}
-	}
-
-	if updated {
-		av, err := dynamodbattribute.MarshalMap(report)
-		if err != nil {
-			return false, err
-		}
-
-		updateInput := &dynamodb.PutItemInput{
-			Item:      av,
-			TableName: aws.String(tableName),
-		}
-
-		_, err = dynamoDBClient.PutItem(updateInput)
-		if err != nil {
-			return false, err
-		}
-
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// If increment is true, all Part indices equal to or above the newIndex will be incremented.
-// If false, everything larger will be decremented.
-func ModifyPartSectionIndices(reportID string, partIndex uint16, newSectionIndex uint16, increment bool) (bool, error) {
-	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
-	report, err := GetReport(reportID)
-
-	if err != nil {
-		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
-	}
-
-	if report == nil {
-		return false, fmt.Errorf("report not found: %v", err)
-	}
-
-	var part *models.ReportPart
-
-	for _, searchPart := range report.Parts {
-		if searchPart.Index == partIndex {
-			part = &searchPart
-			break
-		}
-	}
-
-	updated := false
-	if part != nil {
-
-		for i, section := range part.Sections {
-			if increment && section.Index >= newSectionIndex {
-				part.Sections[i].Index++
-				updated = true
-			} else if !increment && section.Index > newSectionIndex {
-				part.Sections[i].Index--
-				updated = true
-			}
-		}
-	}
-
-	if updated {
-		av, err := dynamodbattribute.MarshalMap(report)
-		if err != nil {
-			return false, err
-		}
-
-		updateInput := &dynamodb.PutItemInput{
-			Item:      av,
-			TableName: aws.String(tableName),
-		}
-
-		_, err = dynamoDBClient.PutItem(updateInput)
-		if err != nil {
-			return false, err
-		}
-
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// AddSectionToReportPart adds a Section to a Part with a specific index in a DynamoDB table.
-func AddSectionToReportPart(reportID string, partIndex uint16, newSection models.ReportSection) error {
-	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
-	if err != nil {
-		return err
-	}
-
-	// Retrieve the Report item
-	result, err := dynamoDBClient.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			constants.ReportIDField: {
-				S: aws.String(reportID),
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if result.Item == nil {
-		return fmt.Errorf("report not found: %v", err)
-	}
-
-	// Unmarshal the Report
-	var report models.Report
-	err = dynamodbattribute.UnmarshalMap(result.Item, &report)
-	if err != nil {
-		return fmt.Errorf("unable to unmarshal dynamodb report: %v", err)
-	}
-
-	// Find the Part and add the Section
-	partFound := false
-	for i, part := range report.Parts {
-		if part.Index == partIndex {
-			report.Parts[i].Sections = append(report.Parts[i].Sections, newSection)
-			partFound = true
-			break
-		}
-	}
-
-	if !partFound {
-		return errors.New("part not found")
-	}
-
-	// Marshal the updated Report back to a map
-	updatedReport, err := dynamodbattribute.MarshalMap(report)
-	if err != nil {
-		return fmt.Errorf("unable to marshall report into dynamodb attribute: %v", err)
-	}
-
-	// Update the Report in the DynamoDB table
-	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
-		TableName: aws.String(tableName),
-		Item:      updatedReport,
-	})
-	if err != nil {
-		return fmt.Errorf("error updating report item in dynamodb: %v", err)
-	}
-
-	return nil
-}
-
 func GetReport(reportID string) (*models.Report, error) {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 	const keyName = constants.ReportIDField
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
 	// Create a DynamoDB input structure for the GetItem operation.
@@ -308,7 +88,7 @@ func GetAllReports() ([]models.Report, error) {
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
 	// Fields to retrieve

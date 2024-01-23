@@ -1,9 +1,18 @@
 package constants
 
+type ItemType string
+
 const (
 	USEast2 string = "us-east-2"
 )
 
+// Types of items
+const (
+	Report   ItemType = "report"
+	Template ItemType = "template"
+)
+
+// Item Fields
 const (
 	ReportIDField   string = "ReportID"
 	TemplateIDField string = "TemplateID"
