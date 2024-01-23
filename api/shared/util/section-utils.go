@@ -1,11 +1,65 @@
 package util
 
 import (
+	"api/shared/constants"
 	"api/shared/interfaces"
 	"api/shared/models"
 	"errors"
+	"fmt"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
+
+func GenerateSection(tableName string, reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
+	report, err := GetReport(tableName, constants.ReportIDField, reportID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	section, err := GetSection(report, partIndex, sectionIndex)
+
+	if err != nil {
+		return fmt.Errorf("error getting section: %v", err)
+	}
+
+	// Reset the text output results so that they can be created from input again
+	ResetTextOutputResults(section)
+
+	GenerateSectionStaticText(section, answers)
+
+	generator := OpenAiGenerator{}
+
+	err = GenerateSectionGeneratorText(generator, section, answers)
+
+	if err != nil {
+		return fmt.Errorf("error creating generator outputs: %v", err)
+	}
+
+	// Set output generated after all sections generated successfully
+	section.OutputGenerated = true
+
+	// Update the report in DynamoDB
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	return err
+}
 
 func GenerateSectionStaticText(section *models.ReportSection, answers []models.Answer) {
 	// Iterate over each answer
