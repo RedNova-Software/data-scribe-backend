@@ -82,7 +82,7 @@ func GetTemplate(templateID string) (*models.Template, error) {
 	return &template, nil
 }
 
-func GetAllTemplates() ([]models.Report, error) {
+func GetAllTemplates() ([]models.Template, error) {
 	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
@@ -109,17 +109,17 @@ func GetAllTemplates() ([]models.Report, error) {
 		return nil, fmt.Errorf("error scanning DynamoDB table: %v", err)
 	}
 
-	reports := []models.Report{}
+	templates := []models.Template{}
 
 	for _, item := range result.Items {
-		var report models.Report
-		err = dynamodbattribute.UnmarshalMap(item, &report)
+		var template models.Template
+		err = dynamodbattribute.UnmarshalMap(item, &template)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
 		}
 
-		reports = append(reports, report)
+		templates = append(templates, template)
 	}
 
-	return reports, nil
+	return templates, nil
 }

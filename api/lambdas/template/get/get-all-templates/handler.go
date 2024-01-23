@@ -13,7 +13,7 @@ import (
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	reports, err := util.GetAllTemplates()
+	templates, err := util.GetAllTemplates()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return events.APIGatewayProxyResponse{
@@ -23,7 +23,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	responseBody, err := json.Marshal(reports)
+	responseBody, err := json.Marshal(templates)
 	if err != nil {
 		fmt.Println("Error marshalling response:", err)
 		return events.APIGatewayProxyResponse{
