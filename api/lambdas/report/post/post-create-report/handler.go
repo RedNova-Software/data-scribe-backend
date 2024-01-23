@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -57,9 +56,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		Parts:      make([]models.ReportPart, 0),
 	}
 
-	tableName := os.Getenv(constants.ReportTable)
-
-	err = util.PutNewReport(tableName, report)
+	err = util.PutNewReport(report)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

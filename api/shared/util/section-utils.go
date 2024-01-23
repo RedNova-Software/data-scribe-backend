@@ -6,6 +6,7 @@ import (
 	"api/shared/models"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,8 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-func GenerateSection(tableName string, reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
-	report, err := GetReport(tableName, constants.ReportIDField, reportID)
+func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
+	report, err := GetReport(constants.ReportIDField, reportID)
 
 	if err != nil {
 		return fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -52,6 +53,7 @@ func GenerateSection(tableName string, reportID string, partIndex uint16, sectio
 		return err
 	}
 
+	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{

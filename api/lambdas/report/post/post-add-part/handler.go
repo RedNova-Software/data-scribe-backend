@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -38,9 +37,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	tableName := os.Getenv(constants.ReportTable)
-
-	updatedIndices, err := util.ModifyReportPartIndices(tableName, req.ReportID, req.Index, true) // Increment all index values equal and above this part
+	updatedIndices, err := util.ModifyReportPartIndices(req.ReportID, req.Index, true) // Increment all index values equal and above this part
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -56,10 +53,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		Sections: []models.ReportSection{},
 	}
 
-	err = util.AddPartToReport(tableName, req.ReportID, newPart)
+	err = util.AddPartToReport(req.ReportID, newPart)
 	if err != nil {
 		if updatedIndices {
-			util.ModifyReportPartIndices(tableName, req.ReportID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
+			util.ModifyReportPartIndices(req.ReportID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
 		}
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
