@@ -42,7 +42,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	tableName := os.Getenv(string(constants.ReportTable))
+	tableName := os.Getenv(constants.ReportTable)
 
 	updatedIndices, err := util.ModifyPartSectionIndices(tableName, req.ReportID, req.PartIndex, req.SectionIndex, true) // Increment all index values equal and above this section
 

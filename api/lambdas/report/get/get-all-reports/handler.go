@@ -14,12 +14,9 @@ import (
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	tableName := os.Getenv(string(constants.ReportTable))
+	tableName := os.Getenv(constants.ReportTable)
 
-	// Attributes to return
-	projectionExpression := "ReportID, ReportType, Title, City"
-
-	reports, err := util.GetAllReports(tableName, projectionExpression)
+	reports, err := util.GetAllReports(tableName)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return events.APIGatewayProxyResponse{

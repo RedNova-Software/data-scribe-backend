@@ -293,12 +293,14 @@ func GetReport(tableName, keyName, keyValue string) (*models.Report, error) {
 	return &report, nil
 }
 
-func GetAllReports(tableName, projectionExpression string) ([]models.Report, error) {
+func GetAllReports(tableName string) ([]models.Report, error) {
 	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return nil, err
 	}
+
+	projectionExpression := "ReportID, ReportType, Title, City"
 
 	// Create a DynamoDB ScanInput with the ProjectionExpression
 	input := &dynamodb.ScanInput{

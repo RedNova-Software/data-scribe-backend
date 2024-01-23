@@ -1,12 +1,10 @@
 package constants
 
-type Key string
-type DynamoDBTable string
-
 const (
-	ReportTable DynamoDBTable = "REPORT_TABLE"
+	ReportTable   string = "REPORT_TABLE"
+	TemplateTable string = "TEMPLATE_TABLE"
 )
 
 const (
-	OpenAIKey Key = "OPENAI_API_KEY"
+	OpenAIKey string = "OPENAI_API_KEY"
 )

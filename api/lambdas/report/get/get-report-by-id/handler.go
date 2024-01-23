@@ -26,7 +26,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	tableName := os.Getenv(string(constants.ReportTable))
+	tableName := os.Getenv(constants.ReportTable)
 	report, err := util.GetReport(tableName, "ReportID", reportID)
 
 	if err != nil {

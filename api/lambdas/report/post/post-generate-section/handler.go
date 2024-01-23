@@ -39,7 +39,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	tableName := os.Getenv(string(constants.ReportTable))
+	tableName := os.Getenv(constants.ReportTable)
 
 	err = util.GenerateSection(tableName, req.ReportID, req.PartIndex, req.SectionIndex, req.Answers)
 
