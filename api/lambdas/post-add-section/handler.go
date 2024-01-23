@@ -15,12 +15,12 @@ import (
 )
 
 type AddSectionRequest struct {
-	ReportID     string              `json:"reportID"`
-	PartIndex    uint16              `json:"partIndex"`
-	SectionIndex uint16              `json:"sectionIndex"`
-	SectionTitle string              `json:"sectionTitle"`
-	Questions    []models.Question   `json:"questions"`
-	TextOutputs  []models.TextOutput `json:"textOutputs"`
+	ReportID     string                    `json:"reportID"`
+	PartIndex    uint16                    `json:"partIndex"`
+	SectionIndex uint16                    `json:"sectionIndex"`
+	SectionTitle string                    `json:"sectionTitle"`
+	Questions    []models.ReportQuestion   `json:"questions"`
+	TextOutputs  []models.ReportTextOutput `json:"textOutputs"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -54,7 +54,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	newSection := models.Section{
+	newSection := models.ReportSection{
 		Title:       req.SectionTitle,
 		Index:       req.SectionIndex,
 		Questions:   req.Questions,

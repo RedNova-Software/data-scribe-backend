@@ -13,7 +13,7 @@ import (
 )
 
 func PutNewReport(tableName string, report models.Report) error {
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func PutNewReport(tableName string, report models.Report) error {
 
 	// Needed to set "Parts" to empty list
 	// For more info, see https://github.com/aws/aws-sdk-go/issues/682
-	reportAV["Parts"] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
+	reportAV[constants.PartsField] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
 
 	input := &dynamodb.PutItemInput{
 		Item:      reportAV,
@@ -43,9 +43,9 @@ func PutNewReport(tableName string, report models.Report) error {
 func AddPartToReport(
 	tableName string,
 	reportID string,
-	newPart models.Part,
+	newPart models.ReportPart,
 ) error {
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return err
 	}
@@ -55,17 +55,17 @@ func AddPartToReport(
 		return err
 	}
 
-	newPartAV["Sections"] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
+	newPartAV[constants.SectionsField] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
 
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
-			"ReportID": {
+			constants.ReportIDField: {
 				S: aws.String(reportID),
 			},
 		},
 		ExpressionAttributeNames: map[string]*string{
-			"#p": aws.String("Parts"),
+			"#p": aws.String(constants.PartsField),
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":newPart": {
@@ -89,8 +89,8 @@ func AddPartToReport(
 // If increment is true, all Part indices equal to or above the newIndex will be incremented.
 // If false, everything larger will be decremented.
 func ModifyReportPartIndices(tableName string, reportID string, newIndex uint16, increment bool) (bool, error) {
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
-	report, err := GetReport(tableName, "ReportID", reportID)
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	report, err := GetReport(tableName, constants.ReportIDField, reportID)
 
 	if err != nil {
 		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -136,8 +136,8 @@ func ModifyReportPartIndices(tableName string, reportID string, newIndex uint16,
 // If increment is true, all Part indices equal to or above the newIndex will be incremented.
 // If false, everything larger will be decremented.
 func ModifyPartSectionIndices(tableName string, reportID string, partIndex uint16, newSectionIndex uint16, increment bool) (bool, error) {
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
-	report, err := GetReport(tableName, "ReportID", reportID)
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	report, err := GetReport(tableName, constants.ReportIDField, reportID)
 
 	if err != nil {
 		return false, fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -147,7 +147,7 @@ func ModifyPartSectionIndices(tableName string, reportID string, partIndex uint1
 		return false, fmt.Errorf("report not found: %v", err)
 	}
 
-	var part *models.Part
+	var part *models.ReportPart
 
 	for _, searchPart := range report.Parts {
 		if searchPart.Index == partIndex {
@@ -193,8 +193,8 @@ func ModifyPartSectionIndices(tableName string, reportID string, partIndex uint1
 }
 
 // AddSectionToPart adds a Section to a Part with a specific index in a DynamoDB table.
-func AddSectionToPart(tableName string, reportID string, partIndex uint16, newSection models.Section) error {
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+func AddSectionToPart(tableName string, reportID string, partIndex uint16, newSection models.ReportSection) error {
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func AddSectionToPart(tableName string, reportID string, partIndex uint16, newSe
 	result, err := dynamoDBClient.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
-			"ReportID": {
+			constants.ReportIDField: {
 				S: aws.String(reportID),
 			},
 		},
@@ -256,7 +256,7 @@ func AddSectionToPart(tableName string, reportID string, partIndex uint16, newSe
 }
 
 func GenerateSection(tableName string, reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
-	report, err := GetReport(tableName, "ReportID", reportID)
+	report, err := GetReport(tableName, constants.ReportIDField, reportID)
 
 	if err != nil {
 		return fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -294,7 +294,7 @@ func GenerateSection(tableName string, reportID string, partIndex uint16, sectio
 		return err
 	}
 
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
 		TableName: aws.String(tableName),
@@ -304,7 +304,7 @@ func GenerateSection(tableName string, reportID string, partIndex uint16, sectio
 }
 
 func GetReport(tableName, keyName, keyValue string) (*models.Report, error) {
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return nil, err
@@ -343,7 +343,7 @@ func GetReport(tableName, keyName, keyValue string) (*models.Report, error) {
 }
 
 func GetAllReports(tableName, projectionExpression string) ([]models.Report, error) {
-	dynamoDBClient, err := newDynamoDBClient(string(constants.USEast2))
+	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return nil, err

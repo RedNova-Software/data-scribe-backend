@@ -54,7 +54,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		ReportType: req.ReportType,
 		Title:      req.Title,
 		City:       req.City,
-		Parts:      make([]models.Part, 0),
+		Parts:      make([]models.ReportPart, 0),
 	}
 
 	tableName := os.Getenv(string(constants.ReportTable))

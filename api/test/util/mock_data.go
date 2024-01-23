@@ -3,10 +3,10 @@ package util_test
 import "api/shared/models"
 
 // Mock data for testing
-func mockStaticData() (*models.Section, []models.Answer) {
-	section := &models.Section{
+func mockStaticData() (*models.ReportSection, []models.Answer) {
+	section := &models.ReportSection{
 		Title: "Test Section",
-		Questions: []models.Question{
+		Questions: []models.ReportQuestion{
 			{
 				Label:    "question1",
 				Index:    0,
@@ -20,7 +20,7 @@ func mockStaticData() (*models.Section, []models.Answer) {
 				Answer:   "",
 			},
 		},
-		TextOutputs: []models.TextOutput{
+		TextOutputs: []models.ReportTextOutput{
 			{
 				Title:  "Output1",
 				Index:  0,
@@ -52,10 +52,10 @@ func mockStaticData() (*models.Section, []models.Answer) {
 	return section, answers
 }
 
-func mockGeneratorData() (*models.Section, []models.Answer) {
-	section := &models.Section{
+func mockGeneratorData() (*models.ReportSection, []models.Answer) {
+	section := &models.ReportSection{
 		Title: "Section Two - Generator",
-		Questions: []models.Question{
+		Questions: []models.ReportQuestion{
 			{
 				Label:    "questionOne",
 				Index:    0,
@@ -69,7 +69,7 @@ func mockGeneratorData() (*models.Section, []models.Answer) {
 				Answer:   "",
 			},
 		},
-		TextOutputs: []models.TextOutput{
+		TextOutputs: []models.ReportTextOutput{
 			{
 				Title:  "Generator One",
 				Input:  "Tell me about this color: **questionOne",

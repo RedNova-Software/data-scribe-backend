@@ -50,10 +50,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	newPart := models.Part{
+	newPart := models.ReportPart{
 		Title:    req.PartTitle,
 		Index:    req.Index,
-		Sections: []models.Section{},
+		Sections: []models.ReportSection{},
 	}
 
 	err = util.AddPartToReport(tableName, req.ReportID, newPart)
