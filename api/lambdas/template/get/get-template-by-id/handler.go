@@ -15,42 +15,42 @@ import (
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Extract the ReportID from the query string parameters
 	// Access the reportID query string parameter
-	reportID := request.QueryStringParameters["reportID"]
+	templateID := request.QueryStringParameters["templateID"]
 
 	// Check if ReportID is provided
-	if reportID == "" {
+	if templateID == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body:       "Bad Request: Missing reportID from query string.",
+			Body:       "Bad Request: Missing templateID from query string.",
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
-	tableName := os.Getenv(constants.ReportTable)
-	report, err := util.GetReport(tableName, "ReportID", reportID)
+	tableName := os.Getenv(constants.TemplateTable)
+	template, err := util.GetTemplate(tableName, "ReportID", templateID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
-			Body:       "Error getting report by ReportID: " + err.Error(),
+			Body:       "Error getting template by TemplateID: " + err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
-	if report == nil {
+	if template == nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusNotFound,
-			Body:       "Report not found",
+			Body:       "Template not found",
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
 	// Marshal the report into JSON
-	reportJSON, err := json.Marshal(report)
+	templateJSON, err := json.Marshal(template)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
-			Body:       "Error marshalling report into JSON: " + err.Error(),
+			Body:       "Error marshalling template into JSON: " + err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
@@ -58,7 +58,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Return the report in the response body
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
-		Body:       string(reportJSON),
+		Body:       string(templateJSON),
 		Headers:    constants.CorsHeaders,
 	}, nil
 }

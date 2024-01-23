@@ -5,6 +5,7 @@ import (
 	"api/shared/models"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -300,7 +301,15 @@ func GetAllReports(tableName string) ([]models.Report, error) {
 		return nil, err
 	}
 
-	projectionExpression := "ReportID, ReportType, Title, City"
+	// Fields to retrieve
+	fields := []string{
+		constants.ReportIDField,
+		constants.ReportTypeField,
+		constants.TitleField,
+		constants.CityField,
+	}
+
+	projectionExpression := strings.Join(fields, ", ")
 
 	// Create a DynamoDB ScanInput with the ProjectionExpression
 	input := &dynamodb.ScanInput{
