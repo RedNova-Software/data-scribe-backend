@@ -7,19 +7,32 @@ import * as fs from "fs";
 
 interface LambdasStackProps extends cdk.StackProps {
   reportTable: dynamodb.Table;
+  templateTable: dynamodb.Table;
 }
 
 export class LambdasStack extends cdk.Stack {
+  // Report Lambdas
   public readonly getReportByIDLambda: lambda.IFunction;
   public readonly getAllReportsLambda: lambda.IFunction;
   public readonly createReportLambda: lambda.IFunction;
-  public readonly addPartLambda: lambda.IFunction;
-  public readonly addSectionLambda: lambda.IFunction;
   public readonly generateSectionLambda: lambda.IFunction;
   public readonly getAllReportTypesLambda: lambda.IFunction;
 
+  // Template Lambas
+  public readonly getTemplateByIDLambda: lambda.IFunction;
+  public readonly getAllTemplatesLambda: lambda.IFunction;
+  public readonly createTemplateLambda: lambda.IFunction;
+
+  // Shared Lambdas
+  public readonly addPartLambda: lambda.IFunction;
+  public readonly addSectionLambda: lambda.IFunction;
+
+  // --------------------------------------------------------- //
+
   constructor(scope: Construct, id: string, props: LambdasStackProps) {
     super(scope, id, props);
+
+    // Report Lambdas
 
     this.createReportLambda = new lambda.Function(this, "CreateReportLambda", {
       code: lambda.Code.fromAsset(
@@ -31,6 +44,7 @@ export class LambdasStack extends cdk.Stack {
         REPORT_TABLE: props.reportTable.tableName,
       },
     });
+    props.reportTable.grantWriteData(this.createReportLambda);
 
     this.getReportByIDLambda = new lambda.Function(
       this,
@@ -46,6 +60,7 @@ export class LambdasStack extends cdk.Stack {
         },
       }
     );
+    props.reportTable.grantReadData(this.getReportByIDLambda);
 
     this.getAllReportsLambda = new lambda.Function(
       this,
@@ -61,6 +76,7 @@ export class LambdasStack extends cdk.Stack {
         },
       }
     );
+    props.reportTable.grantReadData(this.getAllReportsLambda);
 
     this.getAllReportTypesLambda = new lambda.Function(
       this,
@@ -71,33 +87,8 @@ export class LambdasStack extends cdk.Stack {
         ),
         handler: "main",
         runtime: lambda.Runtime.PROVIDED_AL2023,
-        environment: {
-          REPORT_TABLE: props.reportTable.tableName,
-        },
       }
     );
-
-    this.addPartLambda = new lambda.Function(this, "AddPartLambda", {
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../bin/lambdas/add-part")
-      ),
-      handler: "main",
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-      environment: {
-        REPORT_TABLE: props.reportTable.tableName,
-      },
-    });
-
-    this.addSectionLambda = new lambda.Function(this, "AddSectionLambda", {
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../bin/lambdas/add-section")
-      ),
-      handler: "main",
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-      environment: {
-        REPORT_TABLE: props.reportTable.tableName,
-      },
-    });
 
     // Set openAI key as env variable
     const openAIKeyPath = path.join(__dirname, "../../../keys/openai-key.txt");
@@ -122,12 +113,88 @@ export class LambdasStack extends cdk.Stack {
         timeout: cdk.Duration.minutes(5),
       }
     );
-
-    props.reportTable.grantReadData(this.getReportByIDLambda);
-    props.reportTable.grantReadData(this.getAllReportsLambda);
-    props.reportTable.grantWriteData(this.createReportLambda);
-    props.reportTable.grantReadWriteData(this.addPartLambda);
-    props.reportTable.grantReadWriteData(this.addSectionLambda);
     props.reportTable.grantReadWriteData(this.generateSectionLambda);
+    // --------------------------------------------------------- //
+    // Template Lambdas
+
+    this.createTemplateLambda = new lambda.Function(
+      this,
+      "CreateTemplateLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/create-template")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          TEMPLATE_TABLE: props.templateTable.tableName,
+        },
+      }
+    );
+    props.templateTable.grantReadWriteData(this.createTemplateLambda);
+
+    this.getTemplateByIDLambda = new lambda.Function(
+      this,
+      "GetTemplateByIDLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/get-template-by-id")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          TEMPLATE_TABLE: props.templateTable.tableName,
+        },
+      }
+    );
+    props.templateTable.grantReadData(this.getTemplateByIDLambda);
+
+    this.getAllTemplatesLambda = new lambda.Function(
+      this,
+      "GetAllTemplatesLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/get-all-templates")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          TEMPLATE_TABLE: props.templateTable.tableName,
+        },
+      }
+    );
+    props.templateTable.grantReadData(this.getAllTemplatesLambda);
+
+    // --------------------------------------------------------- //
+    // Shared Lambdas
+
+    this.addPartLambda = new lambda.Function(this, "AddPartLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/add-part")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      environment: {
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+    });
+    props.reportTable.grantReadWriteData(this.addPartLambda);
+    props.templateTable.grantReadWriteData(this.addPartLambda);
+
+    this.addSectionLambda = new lambda.Function(this, "AddSectionLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/add-section")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      environment: {
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+    });
+    props.reportTable.grantReadWriteData(this.addSectionLambda);
+    props.templateTable.grantReadWriteData(this.addSectionLambda);
+    // --------------------------------------------------------- //
   }
 }
