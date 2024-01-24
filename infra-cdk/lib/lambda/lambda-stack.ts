@@ -4,6 +4,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import type * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import path = require("path");
 import * as fs from "fs";
+import { memoryUsage } from "process";
 
 interface LambdasStackProps extends cdk.StackProps {
   reportTable: dynamodb.Table;
@@ -43,6 +44,7 @@ export class LambdasStack extends cdk.Stack {
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
       },
+      memorySize: 1024,
     });
     props.reportTable.grantWriteData(this.createReportLambda);
 
@@ -58,6 +60,7 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
         },
+        memorySize: 1024,
       }
     );
     props.reportTable.grantReadData(this.getReportByIDLambda);
@@ -74,6 +77,7 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
         },
+        memorySize: 1024,
       }
     );
     props.reportTable.grantReadData(this.getAllReportsLambda);
@@ -87,6 +91,7 @@ export class LambdasStack extends cdk.Stack {
         ),
         handler: "main",
         runtime: lambda.Runtime.PROVIDED_AL2023,
+        memorySize: 1024,
       }
     );
 
@@ -111,6 +116,7 @@ export class LambdasStack extends cdk.Stack {
           OPENAI_API_KEY: openAIKey,
         },
         timeout: cdk.Duration.minutes(5),
+        memorySize: 1024,
       }
     );
     props.reportTable.grantReadWriteData(this.generateSectionLambda);
@@ -129,6 +135,7 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           TEMPLATE_TABLE: props.templateTable.tableName,
         },
+        memorySize: 1024,
       }
     );
     props.templateTable.grantReadWriteData(this.createTemplateLambda);
@@ -145,6 +152,7 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           TEMPLATE_TABLE: props.templateTable.tableName,
         },
+        memorySize: 1024,
       }
     );
     props.templateTable.grantReadData(this.getTemplateByIDLambda);
@@ -161,6 +169,7 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           TEMPLATE_TABLE: props.templateTable.tableName,
         },
+        memorySize: 1024,
       }
     );
     props.templateTable.grantReadData(this.getAllTemplatesLambda);
@@ -178,6 +187,7 @@ export class LambdasStack extends cdk.Stack {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
       },
+      memorySize: 1024,
     });
     props.reportTable.grantReadWriteData(this.addPartLambda);
     props.templateTable.grantReadWriteData(this.addPartLambda);
@@ -192,6 +202,7 @@ export class LambdasStack extends cdk.Stack {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
       },
+      memorySize: 1024,
     });
     props.reportTable.grantReadWriteData(this.addSectionLambda);
     props.templateTable.grantReadWriteData(this.addSectionLambda);
