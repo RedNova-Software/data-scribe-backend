@@ -372,7 +372,7 @@ func AddSectionToTemplatePart(templateID string, partIndex uint16, newSection mo
 	result, err := dynamoDBClient.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
-			constants.ReportIDField: {
+			constants.TemplateIDField: {
 				S: aws.String(templateID),
 			},
 		},

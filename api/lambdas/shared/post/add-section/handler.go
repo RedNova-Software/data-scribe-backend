@@ -70,6 +70,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			TextOutputs: contents.TextOutputs,
 		}
 		err = util.AddSectionToReportPart(req.ItemID, req.PartIndex, newSection)
+
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Headers:    constants.CorsHeaders,
+				Body:       "Internal Server Error: " + err.Error(),
+			}, nil
+		}
+
 	} else if req.ItemType == constants.Template {
 		var contents TemplateSectionContents
 
@@ -90,6 +99,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}
 
 		err = util.AddSectionToTemplatePart(req.ItemID, req.PartIndex, newSection)
+
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Headers:    constants.CorsHeaders,
+				Body:       "Internal Server Error: " + err.Error(),
+			}, nil
+		}
+
 	} else {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
@@ -99,14 +117,6 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	updatedIndices, err := util.ModifyPartSectionIndices(req.ItemType, req.ItemID, req.PartIndex, req.SectionIndex, true) // Increment all index values equal and above this section
-
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    constants.CorsHeaders,
-			Body:       "Internal Server Error: " + err.Error(),
-		}, nil
-	}
 
 	if err != nil {
 		if updatedIndices {
