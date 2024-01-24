@@ -14,7 +14,7 @@ import (
 
 func PutNewTemplate(template models.Template) error {
 	tableName := os.Getenv(constants.TemplateTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func PutNewTemplate(template models.Template) error {
 
 func GetTemplate(templateID string) (*models.Template, error) {
 	tableName := os.Getenv(constants.TemplateTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	keyName := constants.TemplateIDField
 
 	if err != nil {
@@ -84,7 +84,7 @@ func GetTemplate(templateID string) (*models.Template, error) {
 
 func GetAllTemplates() ([]models.Template, error) {
 	tableName := os.Getenv(constants.TemplateTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return nil, fmt.Errorf("error getting dynamodb client: %v", err)

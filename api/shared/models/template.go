@@ -7,11 +7,10 @@ type TemplateQuestion struct {
 }
 
 type TemplateTextOutput struct {
-	Title  string
-	Index  uint16
-	Type   TextOutputType
-	Input  string
-	Result string
+	Title string
+	Index uint16
+	Type  TextOutputType
+	Input string
 }
 
 type TemplateSection struct {

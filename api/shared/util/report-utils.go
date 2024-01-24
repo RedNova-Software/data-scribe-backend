@@ -14,7 +14,7 @@ import (
 
 func PutNewReport(report models.Report) error {
 	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
@@ -43,7 +43,7 @@ func PutNewReport(report models.Report) error {
 
 func GetReport(reportID string) (*models.Report, error) {
 	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	const keyName = constants.ReportIDField
 
 	if err != nil {
@@ -85,7 +85,7 @@ func GetReport(reportID string) (*models.Report, error) {
 func GetAllReports() ([]models.Report, error) {
 	tableName := os.Getenv(constants.ReportTable)
 
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return nil, fmt.Errorf("error getting dynamodb client: %v", err)

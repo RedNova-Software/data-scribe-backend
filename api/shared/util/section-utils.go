@@ -16,7 +16,7 @@ import (
 
 func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
 	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)

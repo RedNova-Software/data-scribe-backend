@@ -17,7 +17,7 @@ func AddPartToItem(
 	itemID string,
 	newPart models.ReportPart,
 ) error {
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
@@ -77,7 +77,7 @@ func ModifyItemPartIndices(itemType constants.ItemType, itemID string, newIndex 
 	var tableName string
 	updated := false
 
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return false, fmt.Errorf("error getting dynamodb client: %v", err)
@@ -177,7 +177,7 @@ func ModifyPartSectionIndices(itemType constants.ItemType, itemID string, partIn
 	var tableName string
 	updated := false
 
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
 	if err != nil {
 		return false, fmt.Errorf("error getting dynamodb client: %v", err)
@@ -299,7 +299,7 @@ func ModifyPartSectionIndices(itemType constants.ItemType, itemID string, partIn
 // AddSectionToReportPart adds a Section to a Part with a specific index in a specified report.
 func AddSectionToReportPart(reportID string, partIndex uint16, newSection models.ReportSection) error {
 	tableName := os.Getenv(constants.ReportTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
@@ -363,7 +363,7 @@ func AddSectionToReportPart(reportID string, partIndex uint16, newSection models
 // AddSectionToReportPart adds a Section to a Part with a specific index in a specified template.
 func AddSectionToTemplatePart(templateID string, partIndex uint16, newSection models.TemplateSection) error {
 	tableName := os.Getenv(constants.TemplateTable)
-	dynamoDBClient, err := newDynamoDBClient(constants.USEast2)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
