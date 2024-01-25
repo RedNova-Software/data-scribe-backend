@@ -1,13 +1,73 @@
 package util
 
 import (
+	"api/shared/constants"
 	"api/shared/interfaces"
 	"api/shared/models"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-func GenerateSectionStaticText(section *models.Section, answers []models.Answer) {
+func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
+	tableName := os.Getenv(constants.ReportTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	report, err := GetReport(reportID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	section, err := GetSection(report, partIndex, sectionIndex)
+
+	if err != nil {
+		return fmt.Errorf("error getting section: %v", err)
+	}
+
+	// Reset the text output results so that they can be created from input again
+	ResetTextOutputResults(section)
+
+	GenerateSectionStaticText(section, answers)
+
+	generator := OpenAiGenerator{}
+
+	err = GenerateSectionGeneratorText(generator, section, answers)
+
+	if err != nil {
+		return fmt.Errorf("error creating generator outputs: %v", err)
+	}
+
+	// Set output generated after all sections generated successfully
+	section.OutputGenerated = true
+
+	// Update the report in DynamoDB
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	return err
+}
+
+func GenerateSectionStaticText(section *models.ReportSection, answers []models.Answer) {
 	// Iterate over each answer
 	for _, answer := range answers {
 		// Find the matching question
@@ -29,7 +89,7 @@ func GenerateSectionStaticText(section *models.Section, answers []models.Answer)
 	}
 }
 
-func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.Section, answers []models.Answer) error {
+func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.ReportSection, answers []models.Answer) error {
 	// Preserve original inputs as to be able to re-create the section later with different answers to the questions.
 	originalInputs := []string{}
 	for _, textOutput := range section.TextOutputs {
@@ -84,7 +144,7 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 }
 
 // FindQuestion finds a question by its index in a slice of questions
-func FindQuestion(questions []models.Question, index uint16) (*models.Question, error) {
+func FindQuestion(questions []models.ReportQuestion, index uint16) (*models.ReportQuestion, error) {
 	for i := range questions {
 		if questions[i].Index == index {
 			return &questions[i], nil
@@ -94,7 +154,7 @@ func FindQuestion(questions []models.Question, index uint16) (*models.Question, 
 }
 
 // GenerateStaticText processes a TextOutput, splicing in answers into static text outputs.
-func GenerateStaticText(textOutput *models.TextOutput, questionLabel, answer string) {
+func GenerateStaticText(textOutput *models.ReportTextOutput, questionLabel, answer string) {
 	// Define the pattern to be replaced
 	pattern := "**" + questionLabel
 
@@ -109,7 +169,7 @@ func GenerateStaticText(textOutput *models.TextOutput, questionLabel, answer str
 }
 
 // This function allows users to define answers in their openai prompts as well
-func GenerateGeneratorInput(textOutput *models.TextOutput, questionLabel, answer string) {
+func GenerateGeneratorInput(textOutput *models.ReportTextOutput, questionLabel, answer string) {
 	// Define the pattern to be replaced
 	pattern := "**" + questionLabel
 
@@ -120,9 +180,9 @@ func GenerateGeneratorInput(textOutput *models.TextOutput, questionLabel, answer
 }
 
 // GetSection returns the section from a report based on partIndex and sectionIndex.
-func GetSection(report *models.Report, partIndex uint16, sectionIndex uint16) (*models.Section, error) {
+func GetSection(report *models.Report, partIndex uint16, sectionIndex uint16) (*models.ReportSection, error) {
 	// Search for the part with the matching index
-	var foundPart *models.Part
+	var foundPart *models.ReportPart
 	for i := range report.Parts {
 		if report.Parts[i].Index == partIndex {
 			foundPart = &report.Parts[i]
@@ -145,7 +205,7 @@ func GetSection(report *models.Report, partIndex uint16, sectionIndex uint16) (*
 }
 
 // ResetTextOutputResults sets all TextOutput.Result fields to an empty string in the provided section.
-func ResetTextOutputResults(section *models.Section) {
+func ResetTextOutputResults(section *models.ReportSection) {
 	if section == nil {
 		return // or handle the error as you see fit
 	}

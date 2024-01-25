@@ -1,44 +1,65 @@
-import { exec } from 'child_process'
-import path = require('path')
-import fs = require('fs')
+import path = require("path");
+import fs = require("fs");
+import { exec } from "child_process";
 
-const lambdasSourceDir = path.join(__dirname, '../../../api/lambdas')
-const outputDir = path.join(__dirname, '../../bin/lambdas')
+const lambdasSourceDir = path.join(__dirname, "../../../api/lambdas");
+const outputDir = path.join(__dirname, "../../bin/lambdas");
 
-// Ensure the output directory exists
+// Ensure the output root directory exists
 if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true })
+  fs.mkdirSync(outputDir, { recursive: true });
 }
 
-const lambdaFolders = fs.readdirSync(lambdasSourceDir).filter((folder) => {
-  const folderPath = path.join(lambdasSourceDir, folder)
-  return fs.lstatSync(folderPath).isDirectory()
-})
+// Function to recursively find handler.go files
+function findGoFiles(dir: string, fileList: string[] = []): string[] {
+  const files: string[] = fs.readdirSync(dir);
 
-lambdaFolders.forEach((folder) => {
-  const folderPath = path.join(lambdasSourceDir, folder)
-  const goFilePath = path.join(folderPath, 'handler.go')
-  const outputPath = path.join(outputDir, folder)
+  files.forEach((file) => {
+    const filePath: string = path.join(dir, file);
+    if (fs.lstatSync(filePath).isDirectory()) {
+      findGoFiles(filePath, fileList);
+    } else if (file === "handler.go") {
+      fileList.push(filePath);
+    }
+  });
+
+  return fileList;
+}
+
+const goFiles: string[] = findGoFiles(lambdasSourceDir);
+
+goFiles.forEach((goFilePath) => {
+  const folderPath: string = path.dirname(goFilePath);
+  const parentFolder: string = path.basename(folderPath);
+  const outputPath: string = path.join(outputDir, parentFolder);
+
+  // Ensure the specific output directory exists
+  if (!fs.existsSync(outputPath)) {
+    fs.mkdirSync(outputPath, { recursive: true });
+  }
 
   // Compile the Go file in an asynchronous way
   exec(
-    `GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o ${outputPath}/bootstrap ${goFilePath}`,
+    `GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o ${path.join(
+      outputPath,
+      "bootstrap"
+    )} ${goFilePath}`,
     {
-      cwd: folderPath
+      cwd: folderPath,
     },
     (error, stdout, stderr) => {
       if (error) {
         console.error(
-          `Error compiling Go Lambda function in folder ${folder}:`,
-          error
-        )
-        return
+          `Error compiling Go Lambda function in folder ${parentFolder}:`,
+          error.message
+        );
+        return;
       }
       if (stderr) {
-        console.error(`stderr: ${stderr}`)
-        return
+        console.error(`stderr: ${stderr}`);
+        return;
       }
-      console.log(`Successfully compiled Lambda function: ${folder}`)
+      console.log(`Successfully compiled Lambda function: ${parentFolder}`);
     }
-  )
-})
+  );
+});

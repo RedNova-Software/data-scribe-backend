@@ -12,7 +12,7 @@ func TestGenerateSectionStaticText(t *testing.T) {
 	util.GenerateSectionStaticText(section, answers)
 
 	// Expected results after function execution
-	expectedTextOutput := []models.TextOutput{
+	expectedTextOutput := []models.ReportTextOutput{
 		{
 			Title:  "Output1",
 			Index:  0,

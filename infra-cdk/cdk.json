@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/data-scribe-backend.ts",
+  "app": "npx ts-node --prefer-ts-exts lib/data-scribe-backend.ts",
   "watch": {
     "include": [
       "**"

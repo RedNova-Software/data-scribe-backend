@@ -1,20 +1,27 @@
 package constants
 
-type DynamoDBField string
-type AWSRegions string
+type ItemType string
 
 const (
-	USEast2 AWSRegions = "us-east-2"
+	USEast2 string = "us-east-2"
 )
 
+// Types of items
 const (
-	ReportIDField   DynamoDBField = "ReportID"
-	ReportTypeField DynamoDBField = "ReportType"
-	TitleField      DynamoDBField = "Title"
-	CityField       DynamoDBField = "City"
-	PartsField      DynamoDBField = "Parts"
-	HeadersField    DynamoDBField = "Headers"
-	SectionsField   DynamoDBField = "Sections"
-	QuestionsField  DynamoDBField = "Questions"
-	IndexField      DynamoDBField = "Index"
+	Report   ItemType = "report"
+	Template ItemType = "template"
+)
+
+// Item Fields
+const (
+	ReportIDField   string = "ReportID"
+	TemplateIDField string = "TemplateID"
+	ReportTypeField string = "ReportType"
+	TitleField      string = "Title"
+	CityField       string = "City"
+	PartsField      string = "Parts"
+	HeadersField    string = "Headers"
+	SectionsField   string = "Sections"
+	QuestionsField  string = "Questions"
+	IndexField      string = "Index"
 )

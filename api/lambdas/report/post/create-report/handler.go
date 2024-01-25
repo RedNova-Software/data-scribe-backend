@@ -7,14 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/uuid"
 )
 
-type AddReportRequest struct {
+type CreateReportRequest struct {
 	ReportType string `json:"reportType"`
 	Title      string `json:"title"`
 	City       string `json:"city"`
@@ -29,7 +28,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	var req AddReportRequest
+	var req CreateReportRequest
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -54,12 +53,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		ReportType: req.ReportType,
 		Title:      req.Title,
 		City:       req.City,
-		Parts:      make([]models.Part, 0),
+		Parts:      make([]models.ReportPart, 0),
 	}
 
-	tableName := os.Getenv(string(constants.ReportTable))
-
-	err = util.PutNewReport(tableName, report)
+	err = util.PutNewReport(report)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -14,12 +13,7 @@ import (
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	tableName := os.Getenv(string(constants.ReportTable))
-
-	// Attributes to return
-	projectionExpression := "ReportID, ReportType, Title, City"
-
-	reports, err := util.GetAllReports(tableName, projectionExpression)
+	templates, err := util.GetAllTemplates()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return events.APIGatewayProxyResponse{
@@ -29,7 +23,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	responseBody, err := json.Marshal(reports)
+	responseBody, err := json.Marshal(templates)
 	if err != nil {
 		fmt.Println("Error marshalling response:", err)
 		return events.APIGatewayProxyResponse{

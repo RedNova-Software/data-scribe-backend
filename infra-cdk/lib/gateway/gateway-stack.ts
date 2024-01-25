@@ -9,13 +9,21 @@ import path = require("path");
 import { userPoolId } from "../constants/cognito-constants";
 
 interface GatewayStackProps extends cdk.StackProps {
+  // Report Lambdas
   getReportByIDLambda: lambda.IFunction;
   getAllReportsLambda: lambda.IFunction;
   createReportLambda: lambda.IFunction;
-  addPartLambda: lambda.IFunction;
-  addSectionLambda: lambda.IFunction;
   generateSectionLambda: lambda.IFunction;
   getAllReportTypesLambda: lambda.IFunction;
+
+  // Template Lambas
+  getTemplateByIDLambda: lambda.IFunction;
+  getAllTemplatesLambda: lambda.IFunction;
+  createTemplateLambda: lambda.IFunction;
+
+  // Shared Lambdas
+  addPartLambda: lambda.IFunction;
+  addSectionLambda: lambda.IFunction;
 }
 
 export class GatewayStack extends cdk.Stack {
@@ -23,7 +31,7 @@ export class GatewayStack extends cdk.Stack {
     super(scope, id, props);
 
     const logGroup = new logs.LogGroup(this, "ApiGatewayLogGroup", {
-      retention: logs.RetentionDays.ONE_WEEK, // Set the retention as needed
+      retention: logs.RetentionDays.ONE_MONTH, // Set the retention as needed
     });
 
     const stageOptions: apigateway.StageOptions = {
@@ -60,10 +68,15 @@ export class GatewayStack extends cdk.Stack {
     );
 
     const reportResource = gateway.root.addResource("reports");
-    const partResource = reportResource.addResource("parts");
-    const sectionsResource = partResource.addResource("sections");
+    const reportPartResource = reportResource.addResource("parts");
+    const reportSectionsResource = reportPartResource.addResource("sections");
 
-    // Get endpoints
+    const templateResource = gateway.root.addResource("templates");
+    const templatePartResource = templateResource.addResource("parts");
+    const templateSectionsResource =
+      templatePartResource.addResource("sections");
+
+    // Report Endpoints
 
     const getReportByIDEndpoint = reportResource.addResource("get");
     getReportByIDEndpoint.addMethod(
@@ -98,8 +111,6 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    // Post endpoints
-
     const createNewReportEndpoint = reportResource.addResource("create");
     createNewReportEndpoint.addMethod(
       "POST",
@@ -110,7 +121,63 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    const addPartEndpoint = partResource.addResource("add");
+    const generateSectionEndpoint =
+      reportSectionsResource.addResource("generate");
+    generateSectionEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(props.generateSectionLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+    // --------------------------------------------------------- //
+    // Template Endpoints
+
+    const getTemplateByIDEndpoint = templateResource.addResource("get");
+    getTemplateByIDEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getTemplateByIDLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.templateID": true,
+        },
+      }
+    );
+
+    const getAllTemplatesEndpoint = templateResource.addResource("all");
+    getAllTemplatesEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getAllTemplatesLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const createNewTemplateEndpoint = templateResource.addResource("create");
+    createNewTemplateEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(props.createTemplateLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    // --------------------------------------------------------- //
+    // Shared Endpoints.
+
+    //Although will be under templates resource, it works for parts too
+    // I just thought putting it under templates makes the most sense
+    // Alternatives include:
+    // 1) Putting it under a shared resource, like /shared
+    // 2) Making 2 endpoints for the same lambda function
+    // Out of these I would prefer 1), but for now, this works.
+
+    const addPartEndpoint = templatePartResource.addResource("add");
     addPartEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.addPartLambda),
@@ -120,20 +187,10 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    const addSectionEndpoint = sectionsResource.addResource("add");
+    const addSectionEndpoint = templateSectionsResource.addResource("add");
     addSectionEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.addSectionLambda),
-      {
-        authorizer,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      }
-    );
-
-    const generateSectionEndpoint = sectionsResource.addResource("generate");
-    generateSectionEndpoint.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(props.generateSectionLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,

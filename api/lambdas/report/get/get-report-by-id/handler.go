@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -21,13 +20,12 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if reportID == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body:       "Bad Request: Missing reportID from path.",
+			Body:       "Bad Request: Missing reportID from query string.",
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
-	tableName := os.Getenv(string(constants.ReportTable))
-	report, err := util.GetReport(tableName, "ReportID", reportID)
+	report, err := util.GetReport(reportID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

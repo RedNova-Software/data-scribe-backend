@@ -5,7 +5,7 @@ type Answer struct {
 	Answer        string
 }
 
-type Question struct {
+type ReportQuestion struct {
 	Label    string
 	Index    uint16
 	Question string
@@ -19,7 +19,7 @@ const (
 	Static    TextOutputType = "Static"
 )
 
-type TextOutput struct {
+type ReportTextOutput struct {
 	Title  string
 	Index  uint16
 	Type   TextOutputType
@@ -27,18 +27,18 @@ type TextOutput struct {
 	Result string
 }
 
-type Section struct {
+type ReportSection struct {
 	Title           string
 	Index           uint16
 	OutputGenerated bool
-	Questions       []Question
-	TextOutputs     []TextOutput
+	Questions       []ReportQuestion
+	TextOutputs     []ReportTextOutput
 }
 
-type Part struct {
+type ReportPart struct {
 	Title    string
 	Index    uint16
-	Sections []Section
+	Sections []ReportSection
 }
 
 type ModelInfo struct {
@@ -50,7 +50,7 @@ type Model struct {
 }
 
 type ModelOutput struct {
-	TextOutputs []TextOutput
+	TextOutputs []ReportTextOutput
 	Models      []Model
 }
 
@@ -59,5 +59,5 @@ type Report struct {
 	ReportType string
 	Title      string
 	City       string
-	Parts      []Part
+	Parts      []ReportPart
 }
