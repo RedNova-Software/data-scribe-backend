@@ -6,7 +6,6 @@ import (
 	"api/shared/util"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -108,7 +107,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Section added successfully to report with ID: " + req.ItemID + "and part with index: " + fmt.Sprint(req.OldPartIndex),
+		Body:       "Section edited successfully in report with ID: " + req.ItemID,
 	}, nil
 }
 

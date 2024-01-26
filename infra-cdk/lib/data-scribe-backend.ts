@@ -39,4 +39,5 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   addSectionLambda: lambdaFunctionsStack.addSectionLambda,
   editPartLambda: lambdaFunctionsStack.editPartLambda,
   editSectionLambda: lambdaFunctionsStack.editSectionLambda,
+  editItemTitleLambda: lambdaFunctionsStack.editItemTitleLambda,
 });

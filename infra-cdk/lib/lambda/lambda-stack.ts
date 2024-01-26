@@ -30,6 +30,8 @@ export class LambdasStack extends cdk.Stack {
   public readonly editPartLambda: lambda.IFunction;
   public readonly editSectionLambda: lambda.IFunction;
 
+  public readonly editItemTitleLambda: lambda.IFunction;
+
   // --------------------------------------------------------- //
 
   constructor(scope: Construct, id: string, props: LambdasStackProps) {
@@ -238,6 +240,25 @@ export class LambdasStack extends cdk.Stack {
     });
     props.reportTable.grantReadWriteData(this.editSectionLambda);
     props.templateTable.grantReadWriteData(this.editSectionLambda);
+
+    this.editItemTitleLambda = new lambda.Function(
+      this,
+      "EditItemTitleLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/edit-item-title")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+          TEMPLATE_TABLE: props.templateTable.tableName,
+        },
+        memorySize: 1024,
+      }
+    );
+    props.reportTable.grantReadWriteData(this.editItemTitleLambda);
+    props.templateTable.grantReadWriteData(this.editItemTitleLambda);
     // --------------------------------------------------------- //
   }
 }
