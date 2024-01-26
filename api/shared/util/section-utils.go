@@ -14,6 +14,267 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
+func UpdateSectionInReport(
+	reportID string,
+	oldPartIndex uint16,
+	newPartIndex uint16,
+	oldSectionIndex uint16,
+	newSectionIndex uint16,
+	newSectionTitle string,
+	newQuestions []models.ReportQuestion,
+	newTextOutputs []models.ReportTextOutput,
+) error {
+	tableName := os.Getenv(constants.ReportTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	report, err := GetReport(reportID)
+	if err != nil {
+		return fmt.Errorf("error getting report: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found")
+	}
+
+	var oldPart, newPart *models.ReportPart
+	var sectionToMove *models.ReportSection
+
+	// Find the old part of the section
+	for i, part := range report.Parts {
+		if part.Index == oldPartIndex {
+			oldPart = &report.Parts[i]
+			// Get the section to update
+			for j, section := range part.Sections {
+				if section.Index == oldSectionIndex {
+					sectionToMove = &oldPart.Sections[j]
+					break
+				}
+			}
+		}
+		// Get new part of the section
+		if part.Index == newPartIndex {
+			newPart = &report.Parts[i]
+		}
+	}
+
+	// We don't check for if the old part is equal to the new part
+	// because it doesn't matter. The logic works if we remove the section from a part
+	// and add it back to the same part.
+	if newPart == nil {
+		return fmt.Errorf("new part not found")
+	}
+	// Remove the section from the old part
+	oldPart.Sections = removeSectionFromReport(oldPart.Sections, oldSectionIndex)
+	// Add the section to the new part
+	newPart.Sections = addSectionToReport(newPart.Sections, *sectionToMove, newSectionIndex)
+
+	// Update the qualities of the section
+	for i, section := range newPart.Sections {
+		if section.Index == newSectionIndex {
+			newPart.Sections[i].Title = newSectionTitle
+			newPart.Sections[i].Questions = newQuestions
+			newPart.Sections[i].TextOutputs = newTextOutputs
+			newPart.Sections[i].OutputGenerated = false
+			break
+		}
+	}
+
+	av, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	updateInput := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func removeSectionFromReport(sections []models.ReportSection, indexToRemove uint16) []models.ReportSection {
+	// Create a new slice for the updated sections
+	newSections := make([]models.ReportSection, 0, len(sections))
+
+	// First, remove the section with the specified index
+	for _, section := range sections {
+		if section.Index != indexToRemove {
+			newSections = append(newSections, section)
+		}
+	}
+
+	// Update the index for sections that come after the removed section
+	for i := range newSections {
+		if newSections[i].Index > indexToRemove {
+			newSections[i].Index--
+		}
+	}
+
+	return newSections
+}
+
+func addSectionToReport(sections []models.ReportSection, newSection models.ReportSection, indexToAdd uint16) []models.ReportSection {
+	// Create a new slice to hold the updated list of sections
+	newSections := make([]models.ReportSection, 0, len(sections)+1)
+
+	// Add the new section first
+	newSection.Index = indexToAdd
+	newSections = append(newSections, newSection)
+
+	// Iterate over the existing sections and add them to the new slice
+	for _, section := range sections {
+		// If the current section's index is greater or equal to the indexToAdd, increment its index
+		if section.Index >= indexToAdd {
+			section.Index++
+		}
+
+		// Add the current section to the new sections list
+		newSections = append(newSections, section)
+	}
+
+	return newSections
+}
+
+func UpdateSectionInTemplate(
+	templateID string,
+	oldPartIndex uint16,
+	newPartIndex uint16,
+	oldSectionIndex uint16,
+	newSectionIndex uint16,
+	newSectionTitle string,
+	newQuestions []models.TemplateQuestion,
+	newTextOutputs []models.TemplateTextOutput,
+) error {
+	tableName := os.Getenv(constants.TemplateTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	template, err := GetTemplate(templateID)
+	if err != nil {
+		return fmt.Errorf("error getting template: %v", err)
+	}
+
+	if template == nil {
+		return fmt.Errorf("template not found")
+	}
+
+	var oldPart, newPart *models.TemplatePart
+	var sectionToMove *models.TemplateSection
+
+	// Find the old part of the section
+	for i, part := range template.Parts {
+		if part.Index == oldPartIndex {
+			oldPart = &template.Parts[i]
+			// Get the section to update
+			for j, section := range part.Sections {
+				if section.Index == oldSectionIndex {
+					sectionToMove = &oldPart.Sections[j]
+					break
+				}
+			}
+		}
+		// Get new part of the section
+		if part.Index == newPartIndex {
+			newPart = &template.Parts[i]
+		}
+	}
+
+	// We don't check for if the old part is equal to the new part
+	// because it doesn't matter. The logic works if we remove the section from a part
+	// and add it back to the same part.
+	if newPart == nil {
+		return fmt.Errorf("new part not found")
+	}
+	// Remove the section from the old part
+	oldPart.Sections = removeSectionFromTemplate(oldPart.Sections, oldSectionIndex)
+	// Add the section to the new part
+	newPart.Sections = addSectionToTemplate(newPart.Sections, *sectionToMove, newSectionIndex)
+
+	// Update the qualities of the section
+	for i, section := range newPart.Sections {
+		if section.Index == newSectionIndex {
+			newPart.Sections[i].Title = newSectionTitle
+			newPart.Sections[i].Questions = newQuestions
+			newPart.Sections[i].TextOutputs = newTextOutputs
+			break
+		}
+	}
+
+	av, err := dynamodbattribute.MarshalMap(template)
+	if err != nil {
+		return err
+	}
+
+	updateInput := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func removeSectionFromTemplate(sections []models.TemplateSection, indexToRemove uint16) []models.TemplateSection {
+	// Create a new slice for the updated sections
+	newSections := make([]models.TemplateSection, 0, len(sections))
+
+	// First, remove the section with the specified index
+	for _, section := range sections {
+		if section.Index != indexToRemove {
+			newSections = append(newSections, section)
+		}
+	}
+
+	// Update the index for sections that come after the removed section
+	for i := range newSections {
+		if newSections[i].Index > indexToRemove {
+			newSections[i].Index--
+		}
+	}
+
+	return newSections
+}
+
+func addSectionToTemplate(sections []models.TemplateSection, newSection models.TemplateSection, indexToAdd uint16) []models.TemplateSection {
+	// Create a new slice to hold the updated list of sections
+	newSections := make([]models.TemplateSection, 0, len(sections)+1)
+
+	// Add the new section first
+	newSection.Index = indexToAdd
+	newSections = append(newSections, newSection)
+
+	// Iterate over the existing sections and add them to the new slice
+	for _, section := range sections {
+		// If the current section's index is greater or equal to the indexToAdd, increment its index
+		if section.Index >= indexToAdd {
+			section.Index++
+		}
+
+		// Add the current section to the new sections list
+		newSections = append(newSections, section)
+	}
+
+	return newSections
+}
+
 func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)

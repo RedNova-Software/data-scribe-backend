@@ -15,32 +15,52 @@ import (
 func AddPartToItem(
 	itemType constants.ItemType,
 	itemID string,
-	newPart models.ReportPart,
+	partTitle string,
+	partIndex uint16,
 ) error {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
-	newPartAV, err := dynamodbattribute.MarshalMap(newPart)
-	if err != nil {
-		return err
-	}
-
-	newPartAV[constants.SectionsField] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
-
 	var tableName string
 	var itemKey string
+	var newPartAV map[string]*dynamodb.AttributeValue
 
 	if itemType == constants.Report {
 		tableName = os.Getenv(constants.ReportTable)
 		itemKey = constants.ReportIDField
+
+		newPart := models.ReportPart{
+			Title:    partTitle,
+			Index:    partIndex,
+			Sections: []models.ReportSection{},
+		}
+		newPartAV, err = dynamodbattribute.MarshalMap(newPart)
+
+		if err != nil {
+			return err
+		}
+
 	} else if itemType == constants.Template {
 		tableName = os.Getenv(constants.TemplateTable)
 		itemKey = constants.TemplateIDField
+
+		newPart := models.TemplatePart{
+			Title:    partTitle,
+			Index:    partIndex,
+			Sections: []models.TemplateSection{},
+		}
+		newPartAV, err = dynamodbattribute.MarshalMap(newPart)
+
+		if err != nil {
+			return err
+		}
 	} else {
 		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
 	}
+
+	newPartAV[constants.SectionsField] = &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{}}
 
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String(tableName),
@@ -66,6 +86,195 @@ func AddPartToItem(
 	_, err = dynamoDBClient.UpdateItem(input)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func UpdatePartInItem(
+	itemType constants.ItemType,
+	itemID string,
+	oldIndex uint16,
+	newTitle string,
+	newIndex uint16,
+) error {
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	if itemType == constants.Report {
+		tableName := os.Getenv(constants.ReportTable)
+		report, err := GetReport(itemID)
+
+		if err != nil {
+			return fmt.Errorf("error getting report from DynamoDB: %v", err)
+		}
+
+		if report == nil {
+			return fmt.Errorf("report not found: %v", err)
+		}
+
+		err = MoveReportPartIndex(report, oldIndex, newIndex)
+
+		if err != nil {
+			return fmt.Errorf("error moving report part indices: %v", err)
+		}
+
+		for i, part := range report.Parts {
+			if part.Index == newIndex {
+				report.Parts[i].Title = newTitle
+				break
+			}
+		}
+
+		av, err := dynamodbattribute.MarshalMap(report)
+		if err != nil {
+			return err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return err
+		}
+
+		return nil
+
+	} else if itemType == constants.Template {
+		tableName := os.Getenv(constants.TemplateTable)
+		template, err := GetTemplate(itemID)
+
+		if err != nil {
+			return fmt.Errorf("error getting template from DynamoDB: %v", err)
+		}
+
+		if template == nil {
+			return fmt.Errorf("template not found: %v", err)
+		}
+
+		err = MoveTemplatePartIndex(template, oldIndex, newIndex)
+
+		if err != nil {
+			return fmt.Errorf("error moving template part indices: %v", err)
+		}
+
+		for i, part := range template.Parts {
+			if part.Index == newIndex {
+				template.Parts[i].Title = newTitle
+				break
+			}
+		}
+
+		av, err := dynamodbattribute.MarshalMap(template)
+		if err != nil {
+			return err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else {
+		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
+	}
+}
+
+func MoveReportPartIndex(report *models.Report, oldIndex, newIndex uint16) error {
+	if oldIndex == newIndex {
+		return nil // No change if the indices are the same
+	}
+
+	partCount := uint16(len(report.Parts))
+	if oldIndex >= partCount || newIndex >= partCount {
+		return fmt.Errorf("indices out of range")
+	}
+
+	// Find and update the index of the moving part
+	movingPartFound := false
+	for i := range report.Parts {
+		if report.Parts[i].Index == oldIndex {
+			report.Parts[i].Index = newIndex
+			movingPartFound = true
+			break
+		}
+	}
+
+	if !movingPartFound {
+		return fmt.Errorf("part with old index %d not found", oldIndex)
+	}
+
+	// Update the indices of other parts affected by the move
+	if oldIndex < newIndex {
+		// Moving towards a higher index, decrement indices of parts in between
+		for i := range report.Parts {
+			if report.Parts[i].Index > oldIndex && report.Parts[i].Index <= newIndex {
+				report.Parts[i].Index--
+			}
+		}
+	} else {
+		// Moving towards a lower index, increment indices of parts in between
+		for i := range report.Parts {
+			if report.Parts[i].Index < oldIndex && report.Parts[i].Index >= newIndex {
+				report.Parts[i].Index++
+			}
+		}
+	}
+
+	return nil
+}
+
+func MoveTemplatePartIndex(template *models.Template, oldIndex, newIndex uint16) error {
+	if oldIndex == newIndex {
+		return nil // No change if the indices are the same
+	}
+
+	partCount := uint16(len(template.Parts))
+	if oldIndex >= partCount || newIndex >= partCount {
+		return fmt.Errorf("indices out of range")
+	}
+
+	// Find and update the index of the moving part
+	movingPartFound := false
+	for i := range template.Parts {
+		if template.Parts[i].Index == oldIndex {
+			template.Parts[i].Index = newIndex
+			movingPartFound = true
+			break
+		}
+	}
+
+	if !movingPartFound {
+		return fmt.Errorf("part with old index %d not found", oldIndex)
+	}
+
+	// Update the indices of other parts affected by the move
+	if oldIndex < newIndex {
+		// Moving towards a higher index, decrement indices of parts in between
+		for i := range template.Parts {
+			if template.Parts[i].Index > oldIndex && template.Parts[i].Index <= newIndex {
+				template.Parts[i].Index--
+			}
+		}
+	} else {
+		// Moving towards a lower index, increment indices of parts in between
+		for i := range template.Parts {
+			if template.Parts[i].Index < oldIndex && template.Parts[i].Index >= newIndex {
+				template.Parts[i].Index++
+			}
+		}
 	}
 
 	return nil

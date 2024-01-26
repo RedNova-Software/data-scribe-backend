@@ -11,15 +11,16 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type AddPartRequest struct {
+type EditPartRequest struct {
 	ItemType  constants.ItemType `json:"itemType"`
 	ItemID    string             `json:"itemID"`
-	Index     uint16             `json:"partIndex"`
+	OldIndex  uint16             `json:"oldPartIndex"`
+	NewIndex  uint16             `json:"newPartIndex"`
 	PartTitle string             `json:"partTitle"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var req AddPartRequest
+	var req EditPartRequest
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -29,7 +30,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.Index < 0 {
+	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.OldIndex < 0 || req.NewIndex < 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
@@ -37,24 +38,27 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	updatedIndices, err := util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, true) // Increment all index values equal and above this part
-
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    constants.CorsHeaders,
-			Body:       "Internal Server Error: " + err.Error(),
-		}, nil
-	}
-
 	if req.ItemType == constants.Report {
-		err = util.AddPartToItem(constants.Report, req.ItemID, req.PartTitle, req.Index)
-	} else if req.ItemType == constants.Template {
-		err = util.AddPartToItem(constants.Template, req.ItemID, req.PartTitle, req.Index)
-	} else {
-		if updatedIndices {
-			util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
+		err = util.UpdatePartInItem(constants.Report, req.ItemID, req.OldIndex, req.PartTitle, req.NewIndex)
+
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Headers:    constants.CorsHeaders,
+				Body:       "Internal Server Error: " + err.Error(),
+			}, nil
 		}
+	} else if req.ItemType == constants.Template {
+		err = util.UpdatePartInItem(constants.Template, req.ItemID, req.OldIndex, req.PartTitle, req.NewIndex)
+
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Headers:    constants.CorsHeaders,
+				Body:       "Internal Server Error: " + err.Error(),
+			}, nil
+		}
+	} else {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
@@ -62,21 +66,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if err != nil {
-		if updatedIndices {
-			util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
-		}
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    constants.CorsHeaders,
-			Body:       "Internal Server Error: " + err.Error(),
-		}, nil
-	}
-
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Part added successfully to report with ID: " + req.ItemID,
+		Body:       "Part edited successfully",
 	}, nil
 }
 

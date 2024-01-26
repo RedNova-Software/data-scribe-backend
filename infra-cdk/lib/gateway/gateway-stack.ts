@@ -24,6 +24,8 @@ interface GatewayStackProps extends cdk.StackProps {
   // Shared Lambdas
   addPartLambda: lambda.IFunction;
   addSectionLambda: lambda.IFunction;
+  editPartLambda: lambda.IFunction;
+  editSectionLambda: lambda.IFunction;
 }
 
 export class GatewayStack extends cdk.Stack {
@@ -191,6 +193,26 @@ export class GatewayStack extends cdk.Stack {
     addSectionEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.addSectionLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const editPartEndpoint = templatePartResource.addResource("edit");
+    editPartEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.editPartLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const editSectionEndpoint = templateSectionsResource.addResource("edit");
+    editSectionEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.editSectionLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
