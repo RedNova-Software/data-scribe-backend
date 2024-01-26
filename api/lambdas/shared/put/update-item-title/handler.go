@@ -11,14 +11,14 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type EditReportTitleRequest struct {
+type UpdateReportTitleRequest struct {
 	ItemType constants.ItemType `json:"itemType"`
 	ItemID   string             `json:"itemID"`
 	NewTitle string             `json:"newTitle"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var req EditReportTitleRequest
+	var req UpdateReportTitleRequest
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -37,7 +37,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	if req.ItemType == constants.Report {
-		err = util.EditItemTitle(constants.Report, req.ItemID, req.NewTitle)
+		err = util.UpdateItemTitle(constants.Report, req.ItemID, req.NewTitle)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -47,7 +47,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 	} else if req.ItemType == constants.Template {
-		err = util.EditItemTitle(constants.Template, req.ItemID, req.NewTitle)
+		err = util.UpdateItemTitle(constants.Template, req.ItemID, req.NewTitle)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -67,7 +67,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Title edited successfully",
+		Body:       "Title updated successfully",
 	}, nil
 }
 

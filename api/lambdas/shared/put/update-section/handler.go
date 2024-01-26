@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type EditSectionRequest struct {
+type UpdatedSectionRequest struct {
 	ItemType        constants.ItemType `json:"itemType"`
 	ItemID          string             `json:"itemID"`
 	OldPartIndex    uint16             `json:"oldPartIndex"`
@@ -33,7 +33,7 @@ type TemplateSectionContents struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var req EditSectionRequest
+	var req UpdatedSectionRequest
 
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
@@ -107,7 +107,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Section edited successfully in report with ID: " + req.ItemID,
+		Body:       "Section updated successfully in report with ID: " + req.ItemID,
 	}, nil
 }
 

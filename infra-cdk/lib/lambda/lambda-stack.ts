@@ -27,10 +27,10 @@ export class LambdasStack extends cdk.Stack {
   // Shared Lambdas
   public readonly addPartLambda: lambda.IFunction;
   public readonly addSectionLambda: lambda.IFunction;
-  public readonly editPartLambda: lambda.IFunction;
-  public readonly editSectionLambda: lambda.IFunction;
+  public readonly updatePartLambda: lambda.IFunction;
+  public readonly updateSectionLambda: lambda.IFunction;
 
-  public readonly editItemTitleLambda: lambda.IFunction;
+  public readonly updateItemTitleLambda: lambda.IFunction;
 
   // --------------------------------------------------------- //
 
@@ -211,9 +211,9 @@ export class LambdasStack extends cdk.Stack {
     props.reportTable.grantReadWriteData(this.addSectionLambda);
     props.templateTable.grantReadWriteData(this.addSectionLambda);
 
-    this.editPartLambda = new lambda.Function(this, "EditPartLambda", {
+    this.updatePartLambda = new lambda.Function(this, "UpdatePartLambda", {
       code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../bin/lambdas/edit-part")
+        path.join(__dirname, "../../bin/lambdas/update-part")
       ),
       handler: "main",
       runtime: lambda.Runtime.PROVIDED_AL2023,
@@ -223,30 +223,15 @@ export class LambdasStack extends cdk.Stack {
       },
       memorySize: 1024,
     });
-    props.reportTable.grantReadWriteData(this.editPartLambda);
-    props.templateTable.grantReadWriteData(this.editPartLambda);
+    props.reportTable.grantReadWriteData(this.updatePartLambda);
+    props.templateTable.grantReadWriteData(this.updatePartLambda);
 
-    this.editSectionLambda = new lambda.Function(this, "EditSectionLambda", {
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../bin/lambdas/edit-section")
-      ),
-      handler: "main",
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-      environment: {
-        REPORT_TABLE: props.reportTable.tableName,
-        TEMPLATE_TABLE: props.templateTable.tableName,
-      },
-      memorySize: 1024,
-    });
-    props.reportTable.grantReadWriteData(this.editSectionLambda);
-    props.templateTable.grantReadWriteData(this.editSectionLambda);
-
-    this.editItemTitleLambda = new lambda.Function(
+    this.updateSectionLambda = new lambda.Function(
       this,
-      "EditItemTitleLambda",
+      "UpdateSectionLambda",
       {
         code: lambda.Code.fromAsset(
-          path.join(__dirname, "../../bin/lambdas/edit-item-title")
+          path.join(__dirname, "../../bin/lambdas/update-section")
         ),
         handler: "main",
         runtime: lambda.Runtime.PROVIDED_AL2023,
@@ -257,8 +242,27 @@ export class LambdasStack extends cdk.Stack {
         memorySize: 1024,
       }
     );
-    props.reportTable.grantReadWriteData(this.editItemTitleLambda);
-    props.templateTable.grantReadWriteData(this.editItemTitleLambda);
+    props.reportTable.grantReadWriteData(this.updateSectionLambda);
+    props.templateTable.grantReadWriteData(this.updateSectionLambda);
+
+    this.updateItemTitleLambda = new lambda.Function(
+      this,
+      "UpdateItemTitleLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/update-item-title")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+          TEMPLATE_TABLE: props.templateTable.tableName,
+        },
+        memorySize: 1024,
+      }
+    );
+    props.reportTable.grantReadWriteData(this.updateItemTitleLambda);
+    props.templateTable.grantReadWriteData(this.updateItemTitleLambda);
     // --------------------------------------------------------- //
   }
 }

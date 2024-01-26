@@ -24,9 +24,9 @@ interface GatewayStackProps extends cdk.StackProps {
   // Shared Lambdas
   addPartLambda: lambda.IFunction;
   addSectionLambda: lambda.IFunction;
-  editPartLambda: lambda.IFunction;
-  editSectionLambda: lambda.IFunction;
-  editItemTitleLambda: lambda.IFunction;
+  updatePartLambda: lambda.IFunction;
+  updateSectionLambda: lambda.IFunction;
+  updateItemTitleLambda: lambda.IFunction;
 }
 
 export class GatewayStack extends cdk.Stack {
@@ -177,10 +177,10 @@ export class GatewayStack extends cdk.Stack {
     // --------------------------------------------------------- //
     // Shared Endpoints.
 
-    const editItemTitleEndpoint = sharedResource.addResource("title");
-    editItemTitleEndpoint.addMethod(
+    const updateItemTitleEndpoint = sharedResource.addResource("title");
+    updateItemTitleEndpoint.addMethod(
       "PUT",
-      new apigateway.LambdaIntegration(props.editItemTitleLambda),
+      new apigateway.LambdaIntegration(props.updateItemTitleLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -207,20 +207,20 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    const editPartEndpoint = sharedPartResource.addResource("edit");
-    editPartEndpoint.addMethod(
+    const updatePartEndpoint = sharedPartResource.addResource("update");
+    updatePartEndpoint.addMethod(
       "PUT",
-      new apigateway.LambdaIntegration(props.editPartLambda),
+      new apigateway.LambdaIntegration(props.updatePartLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
 
-    const editSectionEndpoint = sharedSectionResource.addResource("edit");
-    editSectionEndpoint.addMethod(
+    const updateSectionEndpoint = sharedSectionResource.addResource("update");
+    updateSectionEndpoint.addMethod(
       "PUT",
-      new apigateway.LambdaIntegration(props.editSectionLambda),
+      new apigateway.LambdaIntegration(props.updateSectionLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
