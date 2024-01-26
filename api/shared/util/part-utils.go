@@ -95,8 +95,8 @@ func UpdatePartInItem(
 	itemType constants.ItemType,
 	itemID string,
 	oldIndex uint16,
-	newTitle string,
 	newIndex uint16,
+	newTitle string,
 ) error {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -204,10 +204,12 @@ func MoveReportPartIndex(report *models.Report, oldIndex, newIndex uint16) error
 
 	// Find and update the index of the moving part
 	movingPartFound := false
+	movingPartIndex := 0
 	for i := range report.Parts {
 		if report.Parts[i].Index == oldIndex {
 			report.Parts[i].Index = newIndex
 			movingPartFound = true
+			movingPartIndex = i
 			break
 		}
 	}
@@ -220,6 +222,10 @@ func MoveReportPartIndex(report *models.Report, oldIndex, newIndex uint16) error
 	if oldIndex < newIndex {
 		// Moving towards a higher index, decrement indices of parts in between
 		for i := range report.Parts {
+			// Skip over the part we changed the index of
+			if i == movingPartIndex {
+				continue
+			}
 			if report.Parts[i].Index > oldIndex && report.Parts[i].Index <= newIndex {
 				report.Parts[i].Index--
 			}
@@ -227,6 +233,10 @@ func MoveReportPartIndex(report *models.Report, oldIndex, newIndex uint16) error
 	} else {
 		// Moving towards a lower index, increment indices of parts in between
 		for i := range report.Parts {
+			// Skip over the part we changed the index of
+			if i == movingPartIndex {
+				continue
+			}
 			if report.Parts[i].Index < oldIndex && report.Parts[i].Index >= newIndex {
 				report.Parts[i].Index++
 			}
@@ -248,10 +258,12 @@ func MoveTemplatePartIndex(template *models.Template, oldIndex, newIndex uint16)
 
 	// Find and update the index of the moving part
 	movingPartFound := false
+	movingPartIndex := 0
 	for i := range template.Parts {
 		if template.Parts[i].Index == oldIndex {
 			template.Parts[i].Index = newIndex
 			movingPartFound = true
+			movingPartIndex = i
 			break
 		}
 	}
@@ -264,6 +276,10 @@ func MoveTemplatePartIndex(template *models.Template, oldIndex, newIndex uint16)
 	if oldIndex < newIndex {
 		// Moving towards a higher index, decrement indices of parts in between
 		for i := range template.Parts {
+			// Skip over the part we changed the index of
+			if i == movingPartIndex {
+				continue
+			}
 			if template.Parts[i].Index > oldIndex && template.Parts[i].Index <= newIndex {
 				template.Parts[i].Index--
 			}
@@ -271,6 +287,10 @@ func MoveTemplatePartIndex(template *models.Template, oldIndex, newIndex uint16)
 	} else {
 		// Moving towards a lower index, increment indices of parts in between
 		for i := range template.Parts {
+			// Skip over the part we changed the index of
+			if i == movingPartIndex {
+				continue
+			}
 			if template.Parts[i].Index < oldIndex && template.Parts[i].Index >= newIndex {
 				template.Parts[i].Index++
 			}

@@ -34,12 +34,12 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType, itemID, partTitle, and partIndex are required.",
+			Body:       "Bad Request: itemType, itemID, oldPartIndex, newPartIndex, and partTitle are required.",
 		}, nil
 	}
 
 	if req.ItemType == constants.Report {
-		err = util.UpdatePartInItem(constants.Report, req.ItemID, req.OldIndex, req.PartTitle, req.NewIndex)
+		err = util.UpdatePartInItem(constants.Report, req.ItemID, req.OldIndex, req.NewIndex, req.PartTitle)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -49,7 +49,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 	} else if req.ItemType == constants.Template {
-		err = util.UpdatePartInItem(constants.Template, req.ItemID, req.OldIndex, req.PartTitle, req.NewIndex)
+		err = util.UpdatePartInItem(constants.Template, req.ItemID, req.OldIndex, req.NewIndex, req.PartTitle)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
