@@ -80,6 +80,8 @@ export class GatewayStack extends cdk.Stack {
       templatePartResource.addResource("sections");
 
     const sharedResource = gateway.root.addResource("shared");
+    const sharedPartResource = sharedResource.addResource("parts");
+    const sharedSectionResource = sharedPartResource.addResource("sections");
 
     // Report Endpoints
 
@@ -175,14 +177,17 @@ export class GatewayStack extends cdk.Stack {
     // --------------------------------------------------------- //
     // Shared Endpoints.
 
-    //Although will be under templates resource, it works for parts too
-    // I just thought putting it under templates makes the most sense
-    // Alternatives include:
-    // 1) Putting it under a shared resource, like /shared
-    // 2) Making 2 endpoints for the same lambda function
-    // Out of these I would prefer 1), but for now, this works.
+    const editItemTitleEndpoint = sharedResource.addResource("title");
+    editItemTitleEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.editItemTitleLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
 
-    const addPartEndpoint = templatePartResource.addResource("add");
+    const addPartEndpoint = sharedPartResource.addResource("add");
     addPartEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.addPartLambda),
@@ -192,7 +197,7 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    const addSectionEndpoint = templateSectionsResource.addResource("add");
+    const addSectionEndpoint = sharedSectionResource.addResource("add");
     addSectionEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.addSectionLambda),
@@ -202,7 +207,7 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    const editPartEndpoint = templatePartResource.addResource("edit");
+    const editPartEndpoint = sharedPartResource.addResource("edit");
     editPartEndpoint.addMethod(
       "PUT",
       new apigateway.LambdaIntegration(props.editPartLambda),
@@ -212,20 +217,10 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    const editSectionEndpoint = templateSectionsResource.addResource("edit");
+    const editSectionEndpoint = sharedSectionResource.addResource("edit");
     editSectionEndpoint.addMethod(
       "PUT",
       new apigateway.LambdaIntegration(props.editSectionLambda),
-      {
-        authorizer,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      }
-    );
-
-    const editItemTitleEndpoint = sharedResource.addResource("title");
-    editItemTitleEndpoint.addMethod(
-      "PUT",
-      new apigateway.LambdaIntegration(props.editItemTitleLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
