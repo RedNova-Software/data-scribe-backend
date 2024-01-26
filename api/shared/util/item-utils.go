@@ -3,6 +3,7 @@ package util
 import (
 	"api/shared/constants"
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -18,11 +19,11 @@ func EditItemTitle(itemType constants.ItemType, itemID, newTitle string) error {
 	var itemKey string
 
 	if itemType == constants.Report {
-		tableName = constants.ReportTable
+		tableName = os.Getenv(constants.ReportTable)
 		itemKey = constants.ReportIDField
 
 	} else if itemType == constants.Template {
-		tableName = constants.TemplateTable
+		tableName = os.Getenv(constants.TemplateTable)
 		itemKey = constants.TemplateIDField
 	} else {
 		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
