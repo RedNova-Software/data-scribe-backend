@@ -229,7 +229,7 @@ func UpdateSectionInTemplate(
 
 }
 
-func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, regenGeneratedOutput bool) error {
+func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, generateAIOutput bool) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -254,11 +254,11 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 	}
 
 	// Reset the text output results so that they can be created from input again
-	ResetTextOutputResults(section, regenGeneratedOutput)
+	ResetTextOutputResults(section, generateAIOutput)
 
 	GenerateSectionStaticText(section, answers)
 
-	if regenGeneratedOutput {
+	if generateAIOutput {
 		generator := OpenAiGenerator{}
 
 		err = GenerateSectionGeneratorText(generator, section, answers)
@@ -406,13 +406,13 @@ func GetReportSection(report *models.Report, partIndex int, sectionIndex int) (*
 }
 
 // ResetTextOutputResults sets all TextOutput.Result fields to an empty string in the provided section.
-func ResetTextOutputResults(section *models.ReportSection, regenGeneratedOutput bool) {
+func ResetTextOutputResults(section *models.ReportSection, generateAIOutput bool) {
 	if section == nil {
 		return // or handle the error as you see fit
 	}
 
 	for i := range section.TextOutputs {
-		if regenGeneratedOutput {
+		if generateAIOutput {
 			section.TextOutputs[i].Result = ""
 		} else {
 			if section.TextOutputs[i].Type == models.Static {
