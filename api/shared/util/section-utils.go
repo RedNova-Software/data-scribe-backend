@@ -107,6 +107,7 @@ func UpdateSectionInReport(
 	newSectionTitle string,
 	newQuestions []models.ReportQuestion,
 	newTextOutputs []models.ReportTextOutput,
+	deleteGeneratedOutput bool,
 ) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -126,10 +127,26 @@ func UpdateSectionInReport(
 
 	updatedSection := &report.Parts[oldPartIndex].Sections[oldSectionIndex]
 
-	// Update the qualities of the section
+	// Update the title and questions of the section
 	updatedSection.Title = newSectionTitle
 	updatedSection.Questions = newQuestions
-	updatedSection.TextOutputs = newTextOutputs
+
+	// If deleteGeneratedOutput is true or the type is not Generator, update the TextOutputs as is
+	if deleteGeneratedOutput {
+		updatedSection.TextOutputs = newTextOutputs
+	} else {
+		// Otherwise, update selectively
+		for i, newTextOutput := range newTextOutputs {
+			if newTextOutput.Type == models.Generator {
+				// Check if the corresponding text output already exists
+				if i < len(updatedSection.TextOutputs) && updatedSection.TextOutputs[i].Type == models.Generator {
+					// Keep the existing Result
+					newTextOutput.Result = updatedSection.TextOutputs[i].Result
+				}
+			}
+			updatedSection.TextOutputs[i] = newTextOutput
+		}
+	}
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInReport(report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)

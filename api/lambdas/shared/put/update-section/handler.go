@@ -13,13 +13,14 @@ import (
 )
 
 type UpdatedSectionRequest struct {
-	ItemType        constants.ItemType `json:"itemType"`
-	ItemID          string             `json:"itemID"`
-	OldPartIndex    int                `json:"oldPartIndex"`
-	NewPartIndex    int                `json:"newPartIndex"`
-	OldSectionIndex int                `json:"oldSectionIndex"`
-	NewSectionIndex int                `json:"newSectionIndex"`
-	NewSectionTitle string             `json:"newSectionTitle"`
+	ItemType              constants.ItemType `json:"itemType"`
+	ItemID                string             `json:"itemID"`
+	DeleteGeneratedOutput bool               `json:"deleteGeneratedOutput"`
+	OldPartIndex          int                `json:"oldPartIndex"`
+	NewPartIndex          int                `json:"newPartIndex"`
+	OldSectionIndex       int                `json:"oldSectionIndex"`
+	NewSectionIndex       int                `json:"newSectionIndex"`
+	NewSectionTitle       string             `json:"newSectionTitle"`
 }
 
 type ReportSectionContents struct {
@@ -64,7 +65,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 
-		err = util.UpdateSectionInReport(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs)
+		err = util.UpdateSectionInReport(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs, req.DeleteGeneratedOutput)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
