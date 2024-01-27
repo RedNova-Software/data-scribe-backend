@@ -213,11 +213,19 @@ func UpdatePartInItem(
 
 func insertReportPart(report *models.Report, part models.ReportPart, index int) error {
 	if index < -1 || index > len(report.Parts) {
-		// Handle the error or ignore if the index is out of bounds
-		return fmt.Errorf("unable to insert part into report. index out of bounds")
+		return fmt.Errorf("unable to insert part into template. index out of bounds")
 	}
 
+	// Handle the case for appending at the start
+	if index == 0 {
+		report.Parts = append([]models.ReportPart{part}, report.Parts...)
+		return nil
+	}
+
+	// Increment index to insert after the specified position
 	index++
+
+	// Insert the part at the specified position
 	report.Parts = append(report.Parts[:index], append([]models.ReportPart{part}, report.Parts[index:]...)...)
 	return nil
 }
@@ -260,7 +268,17 @@ func insertTemplatePart(template *models.Template, part models.TemplatePart, ind
 	if index < -1 || index > len(template.Parts) {
 		return fmt.Errorf("unable to insert part into template. index out of bounds")
 	}
+
+	// Handle the case for appending at the start
+	if index == 0 {
+		template.Parts = append([]models.TemplatePart{part}, template.Parts...)
+		return nil
+	}
+
+	// Increment index to insert after the specified position
 	index++
+
+	// Insert the part at the specified position
 	template.Parts = append(template.Parts[:index], append([]models.TemplatePart{part}, template.Parts[index:]...)...)
 	return nil
 }
