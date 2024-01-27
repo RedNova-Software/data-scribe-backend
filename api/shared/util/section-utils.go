@@ -134,6 +134,8 @@ func UpdateSectionInReport(
 	// If deleteGeneratedOutput is true or the type is not Generator, update the TextOutputs as is
 	if deleteGeneratedOutput {
 		updatedSection.TextOutputs = newTextOutputs
+		// Rest output generated since we're wiping all outputs
+		updatedSection.OutputGenerated = false
 	} else {
 		// Otherwise, update selectively
 		for i, newTextOutput := range newTextOutputs {
@@ -227,7 +229,7 @@ func UpdateSectionInTemplate(
 
 }
 
-func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer) error {
+func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, regenGeneratedOutput bool) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -252,16 +254,17 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 	}
 
 	// Reset the text output results so that they can be created from input again
-	ResetTextOutputResults(section)
+	ResetTextOutputResults(section, regenGeneratedOutput)
 
 	GenerateSectionStaticText(section, answers)
 
-	generator := OpenAiGenerator{}
+	if regenGeneratedOutput {
+		generator := OpenAiGenerator{}
 
-	err = GenerateSectionGeneratorText(generator, section, answers)
-
-	if err != nil {
-		return fmt.Errorf("error creating generator outputs: %v", err)
+		err = GenerateSectionGeneratorText(generator, section, answers)
+		if err != nil {
+			return fmt.Errorf("error creating generator outputs: %v", err)
+		}
 	}
 
 	// Set output generated after all sections generated successfully
@@ -403,13 +406,20 @@ func GetReportSection(report *models.Report, partIndex int, sectionIndex int) (*
 }
 
 // ResetTextOutputResults sets all TextOutput.Result fields to an empty string in the provided section.
-func ResetTextOutputResults(section *models.ReportSection) {
+func ResetTextOutputResults(section *models.ReportSection, regenGeneratedOutput bool) {
 	if section == nil {
 		return // or handle the error as you see fit
 	}
 
 	for i := range section.TextOutputs {
-		section.TextOutputs[i].Result = ""
+		if regenGeneratedOutput {
+			section.TextOutputs[i].Result = ""
+		} else {
+			if section.TextOutputs[i].Type == models.Static {
+				section.TextOutputs[i].Result = ""
+			}
+		}
+
 	}
 }
 
