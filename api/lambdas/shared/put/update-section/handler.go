@@ -15,12 +15,12 @@ import (
 type UpdatedSectionRequest struct {
 	ItemType              constants.ItemType `json:"itemType"`
 	ItemID                string             `json:"itemID"`
-	DeleteGeneratedOutput bool               `json:"deleteGeneratedOutput"`
 	OldPartIndex          int                `json:"oldPartIndex"`
 	NewPartIndex          int                `json:"newPartIndex"`
 	OldSectionIndex       int                `json:"oldSectionIndex"`
 	NewSectionIndex       int                `json:"newSectionIndex"`
 	NewSectionTitle       string             `json:"newSectionTitle"`
+	DeleteGeneratedOutput bool               `json:"deleteGeneratedOutput"`
 }
 
 type ReportSectionContents struct {
