@@ -75,6 +75,14 @@ func GetTemplate(templateID string) (*models.Template, error) {
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &template)
 
+	// Ensure all nil parts and nil sections are returned as an empty list
+	// This is an annoyance due to the way dynamodb marshalls empty lists
+	// When we create an empty report, the parts will be null in dynamodb.
+	// Same for an empty part, the sections will be null. So, to return a list
+	// to the frontend, we need to set it explicitly here.
+	// https://github.com/aws/aws-sdk-go/issues/682
+	ensureNonNullTemplateFields(&template)
+
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into template: %v", err)
 	}
@@ -122,4 +130,36 @@ func GetAllTemplates() ([]models.Template, error) {
 	}
 
 	return templates, nil
+}
+
+func ensureNonNullTemplateFields(report *models.Template) {
+	// Check if Parts is nil, if so, initialize it as an empty slice
+	if report.Parts == nil {
+		report.Parts = []models.TemplatePart{}
+	}
+
+	// Iterate over each part
+	for i := range report.Parts {
+		part := &report.Parts[i]
+
+		// Check if Sections is nil, if so, initialize it as an empty slice
+		if part.Sections == nil {
+			part.Sections = []models.TemplateSection{}
+		}
+
+		// Iterate over each section
+		for j := range part.Sections {
+			section := &part.Sections[j]
+
+			// Check if Questions is nil, if so, initialize it as an empty slice
+			if section.Questions == nil {
+				section.Questions = []models.TemplateQuestion{}
+			}
+
+			// Check if TextOutputs is nil, if so, initialize it as an empty slice
+			if section.TextOutputs == nil {
+				section.TextOutputs = []models.TemplateTextOutput{}
+			}
+		}
+	}
 }

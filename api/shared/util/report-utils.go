@@ -75,6 +75,14 @@ func GetReport(reportID string) (*models.Report, error) {
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &report)
 
+	// Ensure all nil parts and nil sections are returned as an empty list
+	// This is an annoyance due to the way dynamodb marshalls empty lists
+	// When we create an empty report, the parts will be null in dynamodb.
+	// Same for an empty part, the sections will be null. So, to return a list
+	// to the frontend, we need to set it explicitly here.
+	// https://github.com/aws/aws-sdk-go/issues/682
+	ensureNonNullReportFields(&report)
+
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
 	}
@@ -125,4 +133,36 @@ func GetAllReports() ([]models.Report, error) {
 	}
 
 	return reports, nil
+}
+
+func ensureNonNullReportFields(report *models.Report) {
+	// Check if Parts is nil, if so, initialize it as an empty slice
+	if report.Parts == nil {
+		report.Parts = []models.ReportPart{}
+	}
+
+	// Iterate over each part
+	for i := range report.Parts {
+		part := &report.Parts[i]
+
+		// Check if Sections is nil, if so, initialize it as an empty slice
+		if part.Sections == nil {
+			part.Sections = []models.ReportSection{}
+		}
+
+		// Iterate over each section
+		for j := range part.Sections {
+			section := &part.Sections[j]
+
+			// Check if Questions is nil, if so, initialize it as an empty slice
+			if section.Questions == nil {
+				section.Questions = []models.ReportQuestion{}
+			}
+
+			// Check if TextOutputs is nil, if so, initialize it as an empty slice
+			if section.TextOutputs == nil {
+				section.TextOutputs = []models.ReportTextOutput{}
+			}
+		}
+	}
 }
