@@ -65,11 +65,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 		newSection := models.ReportSection{
 			Title:       req.SectionTitle,
-			Index:       req.SectionIndex,
 			Questions:   contents.Questions,
 			TextOutputs: contents.TextOutputs,
 		}
-		err = util.AddSectionToReportPart(req.ItemID, req.PartIndex, newSection)
+		err = util.AddSectionToReport(req.ItemID, req.PartIndex, req.SectionIndex, newSection)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -93,12 +92,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 		newSection := models.TemplateSection{
 			Title:       req.SectionTitle,
-			Index:       req.SectionIndex,
 			Questions:   contents.Questions,
 			TextOutputs: contents.TextOutputs,
 		}
 
-		err = util.AddSectionToTemplatePart(req.ItemID, req.PartIndex, newSection)
+		err = util.AddSectionToTemplate(req.ItemID, req.PartIndex, req.SectionIndex, newSection)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -113,19 +111,6 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
 			Body:       "Bad Request: itemType must be 'report' or 'template' ",
-		}, nil
-	}
-
-	updatedIndices, err := util.ModifyPartSectionIndices(req.ItemType, req.ItemID, req.PartIndex, req.SectionIndex, true) // Increment all index values equal and above this section
-
-	if err != nil {
-		if updatedIndices {
-			util.ModifyPartSectionIndices(req.ItemType, req.ItemID, req.PartIndex, req.SectionIndex, false) // Return indices of parts back to normal. Maybe handle this response soon
-		}
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    constants.CorsHeaders,
-			Body:       "Error adding section to part: " + err.Error(),
 		}, nil
 	}
 

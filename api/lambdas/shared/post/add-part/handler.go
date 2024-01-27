@@ -37,39 +37,29 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	updatedIndices, err := util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, true) // Increment all index values equal and above this part
-
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    constants.CorsHeaders,
-			Body:       "Internal Server Error: " + err.Error(),
-		}, nil
-	}
-
 	if req.ItemType == constants.Report {
 		err = util.AddPartToItem(constants.Report, req.ItemID, req.PartTitle, req.Index)
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Headers:    constants.CorsHeaders,
+				Body:       "Internal Server Error: " + err.Error(),
+			}, nil
+		}
 	} else if req.ItemType == constants.Template {
 		err = util.AddPartToItem(constants.Template, req.ItemID, req.PartTitle, req.Index)
-	} else {
-		if updatedIndices {
-			util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Headers:    constants.CorsHeaders,
+				Body:       "Internal Server Error: " + err.Error(),
+			}, nil
 		}
+	} else {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
 			Body:       "Bad Request: itemType must be 'report' or 'template' ",
-		}, nil
-	}
-
-	if err != nil {
-		if updatedIndices {
-			util.ModifyItemPartIndices(req.ItemType, req.ItemID, req.Index, false) // Return indices of parts back to normal. Maybe handle this response soon
-		}
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    constants.CorsHeaders,
-			Body:       "Internal Server Error: " + err.Error(),
 		}, nil
 	}
 
