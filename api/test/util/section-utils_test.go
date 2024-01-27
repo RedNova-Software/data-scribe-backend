@@ -15,14 +15,12 @@ func TestGenerateSectionStaticText(t *testing.T) {
 	expectedTextOutput := []models.ReportTextOutput{
 		{
 			Title:  "Output1",
-			Index:  0,
 			Type:   models.Static,
 			Input:  "The answer to 2 + 2 = **question1",
 			Result: "The answer to 2 + 2 = 4",
 		},
 		{
 			Title:  "Output2",
-			Index:  1,
 			Type:   models.Static,
 			Input:  "**question2 is the capital of France.",
 			Result: "Paris is the capital of France.",

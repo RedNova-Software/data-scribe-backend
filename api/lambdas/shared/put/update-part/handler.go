@@ -11,15 +11,16 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type AddPartRequest struct {
+type UpdatePartRequest struct {
 	ItemType  constants.ItemType `json:"itemType"`
 	ItemID    string             `json:"itemID"`
-	Index     int                `json:"partIndex"`
+	OldIndex  int                `json:"oldPartIndex"`
+	NewIndex  int                `json:"newPartIndex"`
 	PartTitle string             `json:"partTitle"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var req AddPartRequest
+	var req UpdatePartRequest
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -29,16 +30,17 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.Index < -1 {
+	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.OldIndex < 0 || req.NewIndex < -1 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType, itemID, partTitle, and partIndex are required.",
+			Body:       "Bad Request: itemType, itemID, oldPartIndex, newPartIndex, and partTitle are required.",
 		}, nil
 	}
 
 	if req.ItemType == constants.Report {
-		err = util.AddPartToItem(constants.Report, req.ItemID, req.PartTitle, req.Index)
+		err = util.UpdatePartInItem(constants.Report, req.ItemID, req.OldIndex, req.NewIndex, req.PartTitle)
+
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
@@ -47,7 +49,8 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 	} else if req.ItemType == constants.Template {
-		err = util.AddPartToItem(constants.Template, req.ItemID, req.PartTitle, req.Index)
+		err = util.UpdatePartInItem(constants.Template, req.ItemID, req.OldIndex, req.NewIndex, req.PartTitle)
+
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
@@ -66,7 +69,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Part added successfully to report with ID: " + req.ItemID,
+		Body:       "Part updated successfully",
 	}, nil
 }
 

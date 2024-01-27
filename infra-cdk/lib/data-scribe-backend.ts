@@ -37,4 +37,7 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   // Shared Lambdas
   addPartLambda: lambdaFunctionsStack.addPartLambda,
   addSectionLambda: lambdaFunctionsStack.addSectionLambda,
+  updatePartLambda: lambdaFunctionsStack.updatePartLambda,
+  updateSectionLambda: lambdaFunctionsStack.updateSectionLambda,
+  updateItemTitleLambda: lambdaFunctionsStack.updateItemTitleLambda,
 });

@@ -14,7 +14,222 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, answers []models.Answer) error {
+// AddSectionToReport adds a Section to a Part with a specific index in a specified report.
+func AddSectionToReport(reportID string, partIndex int, sectionIndex int, newSection models.ReportSection) error {
+	tableName := os.Getenv(constants.ReportTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	report, err := GetReport(reportID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	err = insertSectionInReport(report, partIndex, sectionIndex, newSection)
+
+	if err != nil {
+		return fmt.Errorf("error inserting report section: %v", err)
+	}
+
+	// Marshal the updated Report back to a map
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return fmt.Errorf("unable to marshall report into dynamodb attribute: %v", err)
+	}
+
+	// Update the Report in the DynamoDB table
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	if err != nil {
+		return fmt.Errorf("error updating report item in dynamodb: %v", err)
+	}
+
+	return nil
+}
+
+// AddSectionToReportPart adds a Section to a Part with a specific index in a specified template.
+func AddSectionToTemplate(templateID string, partIndex int, sectionIndex int, newSection models.TemplateSection) error {
+	tableName := os.Getenv(constants.TemplateTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	template, err := GetTemplate(templateID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if template == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	err = insertSectionInTemplate(template, partIndex, sectionIndex, newSection)
+
+	if err != nil {
+		return fmt.Errorf("error inserting report section: %v", err)
+	}
+
+	// Marshal the updated Template back to a map
+	updatedTemplate, err := dynamodbattribute.MarshalMap(template)
+	if err != nil {
+		return fmt.Errorf("unable to marshall template into dynamodb attribute: %v", err)
+	}
+
+	// Update the Template in the DynamoDB table
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedTemplate,
+	})
+	if err != nil {
+		return fmt.Errorf("error updating template item in dynamodb: %v", err)
+	}
+
+	return nil
+}
+
+func UpdateSectionInReport(
+	reportID string,
+	oldPartIndex int,
+	newPartIndex int,
+	oldSectionIndex int,
+	newSectionIndex int,
+	newSectionTitle string,
+	newQuestions []models.ReportQuestion,
+	newTextOutputs []models.ReportTextOutput,
+	deleteGeneratedOutput bool,
+) error {
+	tableName := os.Getenv(constants.ReportTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	report, err := GetReport(reportID)
+	if err != nil {
+		return fmt.Errorf("error getting report: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found")
+	}
+
+	updatedSection := &report.Parts[oldPartIndex].Sections[oldSectionIndex]
+
+	// Update the title and questions of the section
+	updatedSection.Title = newSectionTitle
+	updatedSection.Questions = newQuestions
+
+	// If deleteGeneratedOutput is true or the type is not Generator, update the TextOutputs as is
+	if deleteGeneratedOutput {
+		updatedSection.TextOutputs = newTextOutputs
+		// Rest output generated since we're wiping all outputs
+		updatedSection.OutputGenerated = false
+	} else {
+		// Otherwise, update selectively
+		for i, newTextOutput := range newTextOutputs {
+			if newTextOutput.Type == models.Generator {
+				// Check if the corresponding text output already exists
+				if i < len(updatedSection.TextOutputs) && updatedSection.TextOutputs[i].Type == models.Generator {
+					// Keep the existing Result
+					newTextOutput.Result = updatedSection.TextOutputs[i].Result
+				}
+			}
+			updatedSection.TextOutputs[i] = newTextOutput
+		}
+	}
+
+	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
+		err = moveSectionInReport(report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
+	}
+
+	av, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	updateInput := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func UpdateSectionInTemplate(
+	templateID string,
+	oldPartIndex int,
+	newPartIndex int,
+	oldSectionIndex int,
+	newSectionIndex int,
+	newSectionTitle string,
+	newQuestions []models.TemplateQuestion,
+	newTextOutputs []models.TemplateTextOutput,
+) error {
+	tableName := os.Getenv(constants.TemplateTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	template, err := GetTemplate(templateID)
+	if err != nil {
+		return fmt.Errorf("error getting template: %v", err)
+	}
+
+	if template == nil {
+		return fmt.Errorf("template not found")
+	}
+
+	updatedSection := &template.Parts[oldPartIndex].Sections[oldSectionIndex]
+
+	// Update the qualities of the section
+	updatedSection.Title = newSectionTitle
+	updatedSection.Questions = newQuestions
+	updatedSection.TextOutputs = newTextOutputs
+
+	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
+		err = moveSectionInTemplate(template, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
+	}
+
+	av, err := dynamodbattribute.MarshalMap(template)
+	if err != nil {
+		return err
+	}
+
+	updateInput := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, generateAIOutput bool) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -32,23 +247,24 @@ func GenerateSection(reportID string, partIndex uint16, sectionIndex uint16, ans
 		return fmt.Errorf("report not found: %v", err)
 	}
 
-	section, err := GetSection(report, partIndex, sectionIndex)
+	section, err := GetReportSection(report, partIndex, sectionIndex)
 
 	if err != nil {
 		return fmt.Errorf("error getting section: %v", err)
 	}
 
 	// Reset the text output results so that they can be created from input again
-	ResetTextOutputResults(section)
+	ResetTextOutputResults(section, generateAIOutput)
 
 	GenerateSectionStaticText(section, answers)
 
-	generator := OpenAiGenerator{}
+	if generateAIOutput {
+		generator := OpenAiGenerator{}
 
-	err = GenerateSectionGeneratorText(generator, section, answers)
-
-	if err != nil {
-		return fmt.Errorf("error creating generator outputs: %v", err)
+		err = GenerateSectionGeneratorText(generator, section, answers)
+		if err != nil {
+			return fmt.Errorf("error creating generator outputs: %v", err)
+		}
 	}
 
 	// Set output generated after all sections generated successfully
@@ -71,7 +287,7 @@ func GenerateSectionStaticText(section *models.ReportSection, answers []models.A
 	// Iterate over each answer
 	for _, answer := range answers {
 		// Find the matching question
-		question, err := FindQuestion(section.Questions, answer.QuestionIndex)
+		question, err := GetReportQuestion(section.Questions, answer.QuestionIndex)
 		if err != nil {
 			continue // or handle the error as you see fit
 		}
@@ -101,7 +317,7 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 	// Splice answers into prompts
 	for _, answer := range answers {
 		// Find the matching question
-		question, err := FindQuestion(section.Questions, answer.QuestionIndex)
+		question, err := GetReportQuestion(section.Questions, answer.QuestionIndex)
 		if err != nil {
 			continue // or handle the error as you see fit
 		}
@@ -143,12 +359,10 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 	return nil
 }
 
-// FindQuestion finds a question by its index in a slice of questions
-func FindQuestion(questions []models.ReportQuestion, index uint16) (*models.ReportQuestion, error) {
-	for i := range questions {
-		if questions[i].Index == index {
-			return &questions[i], nil
-		}
+// GetReportQuestion finds a question by its index in a slice of questions
+func GetReportQuestion(questions []models.ReportQuestion, index int) (*models.ReportQuestion, error) {
+	if index < len(questions) {
+		return &questions[index], nil
 	}
 	return nil, errors.New("question not found")
 }
@@ -179,38 +393,182 @@ func GenerateGeneratorInput(textOutput *models.ReportTextOutput, questionLabel, 
 	textOutput.Input = strings.ReplaceAll(textOutput.Input, pattern, answer)
 }
 
-// GetSection returns the section from a report based on partIndex and sectionIndex.
-func GetSection(report *models.Report, partIndex uint16, sectionIndex uint16) (*models.ReportSection, error) {
-	// Search for the part with the matching index
-	var foundPart *models.ReportPart
-	for i := range report.Parts {
-		if report.Parts[i].Index == partIndex {
-			foundPart = &report.Parts[i]
-			break
+// GetReportSection returns the section from a report based on partIndex and sectionIndex.
+func GetReportSection(report *models.Report, partIndex int, sectionIndex int) (*models.ReportSection, error) {
+	if partIndex < len(report.Parts) {
+		part := &report.Parts[partIndex]
+		if sectionIndex < len(part.Sections) {
+			return &part.Sections[sectionIndex], nil
 		}
+		return nil, errors.New("section not found")
 	}
-
-	if foundPart == nil {
-		return nil, errors.New("part not found")
-	}
-
-	// Search for the section with the matching index within the found part
-	for i := range foundPart.Sections {
-		if foundPart.Sections[i].Index == sectionIndex {
-			return &foundPart.Sections[i], nil
-		}
-	}
-
-	return nil, errors.New("section not found")
+	return nil, errors.New("part not found")
 }
 
 // ResetTextOutputResults sets all TextOutput.Result fields to an empty string in the provided section.
-func ResetTextOutputResults(section *models.ReportSection) {
+func ResetTextOutputResults(section *models.ReportSection, generateAIOutput bool) {
 	if section == nil {
 		return // or handle the error as you see fit
 	}
 
 	for i := range section.TextOutputs {
-		section.TextOutputs[i].Result = ""
+		if generateAIOutput {
+			section.TextOutputs[i].Result = ""
+		} else {
+			if section.TextOutputs[i].Type == models.Static {
+				section.TextOutputs[i].Result = ""
+			}
+		}
+
 	}
+}
+
+func insertSectionInReport(report *models.Report, partIndex int, sectionIndex int, section models.ReportSection) error {
+	if partIndex < 0 || partIndex >= len(report.Parts) {
+		// Handle out of range partIndex
+		return fmt.Errorf("unable to insert section into template. part index out of bounds")
+	}
+
+	part := &report.Parts[partIndex]
+	if sectionIndex < -1 || sectionIndex > len(part.Sections) {
+		// Handle out of range sectionIndex
+		return fmt.Errorf("unable to insert section into template. section index out of bounds")
+	}
+
+	// The first insert will be inserting into nil
+	if part.Sections == nil {
+		part.Sections = []models.ReportSection{}
+	}
+
+	// Special case handling for inserting at the beginning
+	if sectionIndex == 0 {
+		part.Sections = append([]models.ReportSection{section}, part.Sections...)
+		return nil
+	}
+
+	// Adjust the index to insert after the specified sectionIndex
+	if sectionIndex != -1 {
+		sectionIndex++
+	}
+
+	// Insert the section
+	part.Sections = append(part.Sections[:sectionIndex], append([]models.ReportSection{section}, part.Sections[sectionIndex:]...)...)
+	return nil
+}
+
+func moveSectionInReport(report *models.Report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex int) error {
+	if oldPartIndex < 0 || oldPartIndex >= len(report.Parts) || newPartIndex < 0 || newPartIndex >= len(report.Parts) {
+		// Handle out of range indices
+		return fmt.Errorf("unable to move section in report. part index out of bounds")
+	}
+
+	// Remove the section from the old part
+	oldPart := &report.Parts[oldPartIndex]
+	if oldSectionIndex < 0 || oldSectionIndex >= len(oldPart.Sections) {
+		// Handle out of range sectionIndex
+		return fmt.Errorf("unable to move section in report. section index out of bounds in old part")
+	}
+	section := oldPart.Sections[oldSectionIndex]
+
+	// Handle the special case where newSectionIndex is -1
+	if newSectionIndex == -1 {
+		newSectionIndex = 0
+	} else {
+		// Increment to insert after the specified index
+		newSectionIndex++
+	}
+
+	// Adjust newSectionIndex if moving within the same part and the target position comes after the removed section
+	if oldPartIndex == newPartIndex && newSectionIndex > oldSectionIndex {
+		newSectionIndex--
+	}
+
+	// Handle removal after adjusting to avoid index out of range issues
+	oldPart.Sections = append(oldPart.Sections[:oldSectionIndex], oldPart.Sections[oldSectionIndex+1:]...)
+
+	// Insert the section into the new part
+	newPart := &report.Parts[newPartIndex]
+	if newSectionIndex < 0 || newSectionIndex > len(newPart.Sections) {
+		// Handle out of range sectionIndex
+		return fmt.Errorf("unable to move section in report. section index out of bounds in new part")
+	}
+
+	// Insert the section
+	newPart.Sections = append(newPart.Sections[:newSectionIndex], append([]models.ReportSection{section}, newPart.Sections[newSectionIndex:]...)...)
+	return nil
+}
+
+func insertSectionInTemplate(template *models.Template, partIndex int, sectionIndex int, section models.TemplateSection) error {
+	if partIndex < 0 || partIndex >= len(template.Parts) {
+		// Handle out of range partIndex
+		return fmt.Errorf("unable to insert section into template. part index out of bounds")
+	}
+
+	part := &template.Parts[partIndex]
+	if sectionIndex < -1 || sectionIndex > len(part.Sections) {
+		// Handle out of range sectionIndex
+		return fmt.Errorf("unable to insert section into template. section index out of bounds")
+	}
+
+	// The first insert will be inserting into nil
+	if part.Sections == nil {
+		part.Sections = []models.TemplateSection{}
+	}
+
+	// Special case handling for inserting at the beginning
+	if sectionIndex == 0 {
+		part.Sections = append([]models.TemplateSection{section}, part.Sections...)
+		return nil
+	}
+
+	// Adjust the index to insert after the specified sectionIndex
+	if sectionIndex != -1 {
+		sectionIndex++
+	}
+
+	// Insert the section
+	part.Sections = append(part.Sections[:sectionIndex], append([]models.TemplateSection{section}, part.Sections[sectionIndex:]...)...)
+	return nil
+}
+
+func moveSectionInTemplate(template *models.Template, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex int) error {
+	if oldPartIndex < 0 || oldPartIndex >= len(template.Parts) || newPartIndex < 0 || newPartIndex >= len(template.Parts) {
+		// Handle out of range indices
+		return fmt.Errorf("unable to move section in report. part index out of bounds")
+	}
+
+	// Remove the section from the old part
+	oldPart := &template.Parts[oldPartIndex]
+	if oldSectionIndex < 0 || oldSectionIndex >= len(oldPart.Sections) {
+		// Handle out of range sectionIndex
+		return fmt.Errorf("unable to move section in report. section index out of bounds in old part")
+	}
+	section := oldPart.Sections[oldSectionIndex]
+
+	// Handle the special case where newSectionIndex is -1
+	if newSectionIndex == -1 {
+		newSectionIndex = 0
+	} else {
+		// Increment to insert after the specified index
+		newSectionIndex++
+	}
+
+	// Adjust newSectionIndex if moving within the same part and the target position comes after the removed section
+	if oldPartIndex == newPartIndex && newSectionIndex > oldSectionIndex {
+		newSectionIndex--
+	}
+
+	// Handle removal after adjusting to avoid index out of range issues
+	oldPart.Sections = append(oldPart.Sections[:oldSectionIndex], oldPart.Sections[oldSectionIndex+1:]...)
+
+	// Insert the section into the new part
+	newPart := &template.Parts[newPartIndex]
+	if newSectionIndex < 0 || newSectionIndex > len(newPart.Sections) {
+		// Handle out of range sectionIndex
+		return fmt.Errorf("unable to move section in report. section index out of bounds in new part")
+	}
+
+	// Insert the section
+	newPart.Sections = append(newPart.Sections[:newSectionIndex], append([]models.TemplateSection{section}, newPart.Sections[newSectionIndex:]...)...)
+	return nil
 }

@@ -6,19 +6,21 @@ import (
 	"api/shared/util"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type AddSectionToPartRequest struct {
-	ItemType     constants.ItemType `json:"itemType"`
-	ItemID       string             `json:"itemID"`
-	PartIndex    int                `json:"partIndex"`
-	SectionIndex int                `json:"sectionIndex"`
-	SectionTitle string             `json:"sectionTitle"`
+type UpdatedSectionRequest struct {
+	ItemType              constants.ItemType `json:"itemType"`
+	ItemID                string             `json:"itemID"`
+	OldPartIndex          int                `json:"oldPartIndex"`
+	NewPartIndex          int                `json:"newPartIndex"`
+	OldSectionIndex       int                `json:"oldSectionIndex"`
+	NewSectionIndex       int                `json:"newSectionIndex"`
+	NewSectionTitle       string             `json:"newSectionTitle"`
+	DeleteGeneratedOutput bool               `json:"deleteGeneratedOutput"`
 }
 
 type ReportSectionContents struct {
@@ -32,7 +34,7 @@ type TemplateSectionContents struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var req AddSectionToPartRequest
+	var req UpdatedSectionRequest
 
 	err := json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
@@ -43,18 +45,18 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.PartIndex < 0 || req.SectionTitle == "" || req.SectionIndex < -1 {
+	if req.ItemType == "" || req.ItemID == "" || req.OldPartIndex < 0 || req.NewPartIndex < 0 || req.OldSectionIndex < 0 || req.NewSectionIndex < -1 || req.NewSectionTitle == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType, itemID, sectionTitle, partIndex, and sectionIndex are required.",
+			Body:       "Bad Request: itemType, itemID, oldPartIndex, newPartIndex, oldSectionIndex, newSectionIndex, and newSectionTitle are required.",
 		}, nil
 	}
 
 	if req.ItemType == constants.Report {
-		var contents ReportSectionContents
+		var sectionContents ReportSectionContents
 
-		err := json.Unmarshal([]byte(request.Body), &contents)
+		err := json.Unmarshal([]byte(request.Body), &sectionContents)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
@@ -63,12 +65,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 
-		newSection := models.ReportSection{
-			Title:       req.SectionTitle,
-			Questions:   contents.Questions,
-			TextOutputs: contents.TextOutputs,
-		}
-		err = util.AddSectionToReport(req.ItemID, req.PartIndex, req.SectionIndex, newSection)
+		err = util.UpdateSectionInReport(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs, req.DeleteGeneratedOutput)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -79,9 +76,9 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}
 
 	} else if req.ItemType == constants.Template {
-		var contents TemplateSectionContents
+		var sectionContents TemplateSectionContents
 
-		err := json.Unmarshal([]byte(request.Body), &contents)
+		err := json.Unmarshal([]byte(request.Body), &sectionContents)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
@@ -90,13 +87,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 
-		newSection := models.TemplateSection{
-			Title:       req.SectionTitle,
-			Questions:   contents.Questions,
-			TextOutputs: contents.TextOutputs,
-		}
-
-		err = util.AddSectionToTemplate(req.ItemID, req.PartIndex, req.SectionIndex, newSection)
+		err = util.UpdateSectionInTemplate(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -117,7 +108,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Section added successfully to report with ID: " + req.ItemID + "and part with index: " + fmt.Sprint(req.PartIndex),
+		Body:       "Section updated successfully in report with ID: " + req.ItemID,
 	}, nil
 }
 

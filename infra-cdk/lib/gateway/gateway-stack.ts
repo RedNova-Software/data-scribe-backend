@@ -24,6 +24,9 @@ interface GatewayStackProps extends cdk.StackProps {
   // Shared Lambdas
   addPartLambda: lambda.IFunction;
   addSectionLambda: lambda.IFunction;
+  updatePartLambda: lambda.IFunction;
+  updateSectionLambda: lambda.IFunction;
+  updateItemTitleLambda: lambda.IFunction;
 }
 
 export class GatewayStack extends cdk.Stack {
@@ -75,6 +78,10 @@ export class GatewayStack extends cdk.Stack {
     const templatePartResource = templateResource.addResource("parts");
     const templateSectionsResource =
       templatePartResource.addResource("sections");
+
+    const sharedResource = gateway.root.addResource("shared");
+    const sharedPartResource = sharedResource.addResource("parts");
+    const sharedSectionResource = sharedPartResource.addResource("sections");
 
     // Report Endpoints
 
@@ -170,14 +177,17 @@ export class GatewayStack extends cdk.Stack {
     // --------------------------------------------------------- //
     // Shared Endpoints.
 
-    //Although will be under templates resource, it works for parts too
-    // I just thought putting it under templates makes the most sense
-    // Alternatives include:
-    // 1) Putting it under a shared resource, like /shared
-    // 2) Making 2 endpoints for the same lambda function
-    // Out of these I would prefer 1), but for now, this works.
+    const updateItemTitleEndpoint = sharedResource.addResource("title");
+    updateItemTitleEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.updateItemTitleLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
 
-    const addPartEndpoint = templatePartResource.addResource("add");
+    const addPartEndpoint = sharedPartResource.addResource("add");
     addPartEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.addPartLambda),
@@ -187,10 +197,30 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
-    const addSectionEndpoint = templateSectionsResource.addResource("add");
+    const addSectionEndpoint = sharedSectionResource.addResource("add");
     addSectionEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.addSectionLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const updatePartEndpoint = sharedPartResource.addResource("update");
+    updatePartEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.updatePartLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const updateSectionEndpoint = sharedSectionResource.addResource("update");
+    updateSectionEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.updateSectionLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,

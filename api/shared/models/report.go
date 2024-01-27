@@ -1,13 +1,12 @@
 package models
 
 type Answer struct {
-	QuestionIndex uint16
+	QuestionIndex int
 	Answer        string
 }
 
 type ReportQuestion struct {
 	Label    string
-	Index    uint16
 	Question string
 	Answer   string
 }
@@ -21,7 +20,6 @@ const (
 
 type ReportTextOutput struct {
 	Title  string
-	Index  uint16
 	Type   TextOutputType
 	Input  string
 	Result string
@@ -29,16 +27,14 @@ type ReportTextOutput struct {
 
 type ReportSection struct {
 	Title           string
-	Index           uint16
 	OutputGenerated bool
-	Questions       []ReportQuestion
-	TextOutputs     []ReportTextOutput
+	Questions       []ReportQuestion   `dynamodbav:"questions"`
+	TextOutputs     []ReportTextOutput `dynamodbav:"textOutputs"`
 }
 
 type ReportPart struct {
 	Title    string
-	Index    uint16
-	Sections []ReportSection
+	Sections []ReportSection `dynamodbav:"sections"`
 }
 
 type ModelInfo struct {
@@ -59,5 +55,5 @@ type Report struct {
 	ReportType string
 	Title      string
 	City       string
-	Parts      []ReportPart
+	Parts      []ReportPart `dynamodbav:"parts"`
 }
