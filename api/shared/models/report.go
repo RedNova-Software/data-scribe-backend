@@ -1,7 +1,7 @@
 package models
 
 type Answer struct {
-	QuestionIndex uint16
+	QuestionIndex int
 	Answer        string
 }
 

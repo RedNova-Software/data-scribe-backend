@@ -15,7 +15,7 @@ func AddPartToItem(
 	itemType constants.ItemType,
 	itemID string,
 	partTitle string,
-	partIndex uint16,
+	partIndex int,
 ) error {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
@@ -46,7 +46,7 @@ func AddPartToItem(
 			Sections: []models.ReportSection{},
 		}
 
-		err = insertReportPart(report, newPart, int(partIndex))
+		err = insertReportPart(report, newPart, partIndex)
 
 		if err != nil {
 			return fmt.Errorf("error inserting report part: %v", err)
@@ -89,7 +89,7 @@ func AddPartToItem(
 			Sections: []models.TemplateSection{},
 		}
 
-		err = insertTemplatePart(template, newPart, int(partIndex))
+		err = insertTemplatePart(template, newPart, partIndex)
 
 		if err != nil {
 			return fmt.Errorf("error inserting report part: %v", err)
@@ -119,8 +119,8 @@ func AddPartToItem(
 func UpdatePartInItem(
 	itemType constants.ItemType,
 	itemID string,
-	oldIndex uint16,
-	newIndex uint16,
+	oldIndex int,
+	newIndex int,
 	newTitle string,
 ) error {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -141,13 +141,15 @@ func UpdatePartInItem(
 			return fmt.Errorf("report not found: %v", err)
 		}
 
-		err = moveReportPart(report, int(oldIndex), int(newIndex))
+		report.Parts[oldIndex].Title = newTitle
+
+		if oldIndex != newIndex {
+			err = moveReportPart(report, oldIndex, newIndex)
+		}
 
 		if err != nil {
 			return fmt.Errorf("error moving report part: %v", err)
 		}
-
-		report.Parts[newIndex].Title = newTitle
 
 		av, err := dynamodbattribute.MarshalMap(report)
 		if err != nil {
@@ -178,13 +180,15 @@ func UpdatePartInItem(
 			return fmt.Errorf("template not found: %v", err)
 		}
 
-		err = moveTemplatePart(template, int(oldIndex), int(newIndex))
+		template.Parts[oldIndex].Title = newTitle
+
+		if oldIndex != newIndex {
+			err = moveTemplatePart(template, oldIndex, newIndex)
+		}
 
 		if err != nil {
 			return fmt.Errorf("error moving report part: %v", err)
 		}
-
-		template.Parts[newIndex].Title = newTitle
 
 		av, err := dynamodbattribute.MarshalMap(template)
 		if err != nil {
@@ -208,23 +212,44 @@ func UpdatePartInItem(
 }
 
 func insertReportPart(report *models.Report, part models.ReportPart, index int) error {
-	if index < 0 || index > len(report.Parts) {
+	if index < -1 || index > len(report.Parts) {
 		// Handle the error or ignore if the index is out of bounds
 		return fmt.Errorf("unable to insert part into report. index out of bounds")
 	}
+
+	index++
 	report.Parts = append(report.Parts[:index], append([]models.ReportPart{part}, report.Parts[index:]...)...)
 	return nil
 }
 
 func moveReportPart(report *models.Report, fromIndex, toIndex int) error {
-	if fromIndex < 0 || fromIndex >= len(report.Parts) || toIndex < 0 || toIndex >= len(report.Parts) {
+	if fromIndex < 0 || fromIndex >= len(report.Parts) || toIndex < -1 || toIndex > len(report.Parts) {
 		// Handle the error or ignore if indices are out of bounds
 		return fmt.Errorf("unable to move part in report. index out of bounds")
+	}
+
+	// Check if fromIndex and toIndex are the same, in which case, do not move
+	if fromIndex == toIndex {
+		return nil // No action needed as the part is already in the desired position
 	}
 
 	// Remove the part from the current position
 	part := report.Parts[fromIndex]
 	report.Parts = append(report.Parts[:fromIndex], report.Parts[fromIndex+1:]...)
+
+	// If toIndex is the last index, simply append the part to the end
+	if toIndex == len(report.Parts) {
+		report.Parts = append(report.Parts, part)
+		return nil
+	}
+
+	// Adjust toIndex if it is greater than fromIndex
+	if toIndex > fromIndex {
+		toIndex--
+	} else {
+		// Increment toIndex to insert after the specified index
+		toIndex++
+	}
 
 	// Reinsert the part at the new position
 	report.Parts = append(report.Parts[:toIndex], append([]models.ReportPart{part}, report.Parts[toIndex:]...)...)
@@ -232,22 +257,42 @@ func moveReportPart(report *models.Report, fromIndex, toIndex int) error {
 }
 
 func insertTemplatePart(template *models.Template, part models.TemplatePart, index int) error {
-	if index < 0 || index > len(template.Parts) {
+	if index < -1 || index > len(template.Parts) {
 		return fmt.Errorf("unable to insert part into template. index out of bounds")
 	}
+	index++
 	template.Parts = append(template.Parts[:index], append([]models.TemplatePart{part}, template.Parts[index:]...)...)
 	return nil
 }
 
 func moveTemplatePart(template *models.Template, fromIndex, toIndex int) error {
-	if fromIndex < 0 || fromIndex >= len(template.Parts) || toIndex < 0 || toIndex >= len(template.Parts) {
+	if fromIndex < 0 || fromIndex >= len(template.Parts) || toIndex < -1 || toIndex > len(template.Parts) {
 		// Handle the error or ignore if indices are out of bounds
-		return fmt.Errorf("unable to move part in template. index out of bounds")
+		return fmt.Errorf("unable to move part in report. index out of bounds")
+	}
+
+	// Check if fromIndex and toIndex are the same, in which case, do not move
+	if fromIndex == toIndex {
+		return nil // No action needed as the part is already in the desired position
 	}
 
 	// Remove the part from the current position
 	part := template.Parts[fromIndex]
 	template.Parts = append(template.Parts[:fromIndex], template.Parts[fromIndex+1:]...)
+
+	// If toIndex is the last index, simply append the part to the end
+	if toIndex == len(template.Parts) {
+		template.Parts = append(template.Parts, part)
+		return nil
+	}
+
+	// Adjust toIndex if it is greater than fromIndex
+	if toIndex > fromIndex {
+		toIndex--
+	} else {
+		// Increment toIndex to insert after the specified index
+		toIndex++
+	}
 
 	// Reinsert the part at the new position
 	template.Parts = append(template.Parts[:toIndex], append([]models.TemplatePart{part}, template.Parts[toIndex:]...)...)

@@ -14,8 +14,8 @@ import (
 type UpdatePartRequest struct {
 	ItemType  constants.ItemType `json:"itemType"`
 	ItemID    string             `json:"itemID"`
-	OldIndex  uint16             `json:"oldPartIndex"`
-	NewIndex  uint16             `json:"newPartIndex"`
+	OldIndex  int                `json:"oldPartIndex"`
+	NewIndex  int                `json:"newPartIndex"`
 	PartTitle string             `json:"partTitle"`
 }
 
@@ -30,7 +30,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.OldIndex < 0 || req.NewIndex < 0 {
+	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.OldIndex < 0 || req.NewIndex < -1 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,

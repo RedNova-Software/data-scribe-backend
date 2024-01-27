@@ -14,7 +14,7 @@ import (
 type AddPartRequest struct {
 	ItemType  constants.ItemType `json:"itemType"`
 	ItemID    string             `json:"itemID"`
-	Index     uint16             `json:"partIndex"`
+	Index     int                `json:"partIndex"`
 	PartTitle string             `json:"partTitle"`
 }
 
@@ -29,7 +29,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.Index < 0 {
+	if req.ItemType == "" || req.ItemID == "" || req.PartTitle == "" || req.Index < -1 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,

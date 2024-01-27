@@ -16,8 +16,8 @@ import (
 type AddSectionToPartRequest struct {
 	ItemType     constants.ItemType `json:"itemType"`
 	ItemID       string             `json:"itemID"`
-	PartIndex    uint16             `json:"partIndex"`
-	SectionIndex uint16             `json:"sectionIndex"`
+	PartIndex    int                `json:"partIndex"`
+	SectionIndex int                `json:"sectionIndex"`
 	SectionTitle string             `json:"sectionTitle"`
 }
 
@@ -43,7 +43,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.PartIndex < 0 || req.SectionTitle == "" || req.SectionIndex < 0 {
+	if req.ItemType == "" || req.ItemID == "" || req.PartIndex < 0 || req.SectionTitle == "" || req.SectionIndex < -1 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,

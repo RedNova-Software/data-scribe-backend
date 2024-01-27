@@ -15,10 +15,10 @@ import (
 type UpdatedSectionRequest struct {
 	ItemType        constants.ItemType `json:"itemType"`
 	ItemID          string             `json:"itemID"`
-	OldPartIndex    uint16             `json:"oldPartIndex"`
-	NewPartIndex    uint16             `json:"newPartIndex"`
-	OldSectionIndex uint16             `json:"oldSectionIndex"`
-	NewSectionIndex uint16             `json:"newSectionIndex"`
+	OldPartIndex    int                `json:"oldPartIndex"`
+	NewPartIndex    int                `json:"newPartIndex"`
+	OldSectionIndex int                `json:"oldSectionIndex"`
+	NewSectionIndex int                `json:"newSectionIndex"`
 	NewSectionTitle string             `json:"newSectionTitle"`
 }
 
@@ -44,7 +44,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.OldPartIndex < 0 || req.NewPartIndex < 0 || req.OldSectionIndex < 0 || req.NewSectionIndex < 0 || req.NewSectionTitle == "" {
+	if req.ItemType == "" || req.ItemID == "" || req.OldPartIndex < 0 || req.NewPartIndex < 0 || req.OldSectionIndex < 0 || req.NewSectionIndex < -1 || req.NewSectionTitle == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,

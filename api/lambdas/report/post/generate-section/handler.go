@@ -14,8 +14,8 @@ import (
 
 type AddSectionRequest struct {
 	ReportID     string          `json:"reportID"`
-	PartIndex    uint16          `json:"partIndex"`
-	SectionIndex uint16          `json:"sectionIndex"`
+	PartIndex    int             `json:"partIndex"`
+	SectionIndex int             `json:"sectionIndex"`
 	Answers      []models.Answer `json:"answers"`
 }
 
