@@ -27,6 +27,10 @@ interface GatewayStackProps extends cdk.StackProps {
   updateSectionLambda: lambda.IFunction;
   updateItemTitleLambda: lambda.IFunction;
 
+  // User Lambdas
+  getUserIDLambda: lambda.IFunction;
+  getAllUsersLambda: lambda.IFunction;
+
   // Cognito User Pool
   userPool: cognito.UserPool;
 }
@@ -71,6 +75,8 @@ export class GatewayStack extends cdk.Stack {
         identitySource: "method.request.header.Authorization", // default
       }
     );
+
+    const userResource = gateway.root.addResource("users");
 
     const reportResource = gateway.root.addResource("reports");
     const reportPartResource = reportResource.addResource("parts");
@@ -228,5 +234,30 @@ export class GatewayStack extends cdk.Stack {
         authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
+
+    // --------------------------------------------------------- //
+    // User Endpoints
+
+    const getUserIDEndpoint = userResource.addResource("getCurrentID");
+    getUserIDEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getUserIDLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const getAllUsersEndpoint = userResource.addResource("all");
+    getAllUsersEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getAllUsersLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    // --------------------------------------------------------- //
   }
 }

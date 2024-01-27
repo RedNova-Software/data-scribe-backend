@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -15,7 +16,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	userID, err := util.ExtractUserID(request)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
-			StatusCode: 400,
+			StatusCode: http.StatusInternalServerError,
 			Body:       err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil

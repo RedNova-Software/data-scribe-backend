@@ -30,8 +30,11 @@ export class LambdasStack extends cdk.Stack {
   public readonly addSectionLambda: lambda.IFunction;
   public readonly updatePartLambda: lambda.IFunction;
   public readonly updateSectionLambda: lambda.IFunction;
-
   public readonly updateItemTitleLambda: lambda.IFunction;
+
+  // User Lambdas
+  public readonly getUserIDLambda: lambda.IFunction;
+  public readonly getAllUsersLambda: lambda.IFunction;
 
   // --------------------------------------------------------- //
 
@@ -300,6 +303,32 @@ export class LambdasStack extends cdk.Stack {
       this.updateItemTitleLambda,
       "cognito-idp:AdminGetUser"
     );
+    // --------------------------------------------------------- //
+
+    // User Lambdas
+
+    this.getUserIDLambda = new lambda.Function(this, "GetUserIDLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/get-user-id")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+    });
+
+    this.getAllUsersLambda = new lambda.Function(this, "GetAllUsersLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/get-all-users")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+      environment: {
+        USER_POOL_ID: props.userPool.userPoolId,
+      },
+    });
+    props.userPool.grant(this.getAllUsersLambda, "cognito-idp:ListUsers");
+
     // --------------------------------------------------------- //
   }
 }

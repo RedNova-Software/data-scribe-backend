@@ -2,14 +2,13 @@ package util
 
 import (
 	"api/shared/constants"
-	"context"
+	"api/shared/models"
 	"fmt"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 )
 
 // ExtractUserID extracts the user's Cognito ID from the API Gateway request context
@@ -29,14 +28,11 @@ func ExtractUserID(request events.APIGatewayProxyRequest) (string, error) {
 
 // GetUserNickname fetches the nickname of the user from Cognito User Pool
 func GetUserNickname(userID string) (string, error) {
-	// Load the AWS default config
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	// Create a new Cognito Identity Provider client
+	client, err := GetCognitoClient(constants.USEast2)
 	if err != nil {
 		return "", err
 	}
-
-	// Create a new Cognito Identity Provider client
-	client := cognitoidentityprovider.NewFromConfig(cfg)
 
 	// Prepare the request
 	input := &cognitoidentityprovider.AdminGetUserInput{
@@ -45,7 +41,7 @@ func GetUserNickname(userID string) (string, error) {
 	}
 
 	// Fetch the user details
-	result, err := client.AdminGetUser(context.Background(), input)
+	result, err := client.AdminGetUser(input)
 	if err != nil {
 		return "", err
 	}
@@ -58,4 +54,42 @@ func GetUserNickname(userID string) (string, error) {
 	}
 
 	return "", fmt.Errorf("nickname not found for user: " + userID)
+}
+
+func GetAllUsers() ([]models.User, error) {
+	client, err := GetCognitoClient(constants.USEast2)
+	if err != nil {
+		return nil, err
+	}
+
+	input := &cognitoidentityprovider.ListUsersInput{
+		UserPoolId: aws.String(os.Getenv(constants.UserPoolID)),
+	}
+
+	var users []models.User
+	err = client.ListUsersPages(input, func(page *cognitoidentityprovider.ListUsersOutput, lastPage bool) bool {
+		for _, user := range page.Users {
+			var userID, userNickName string
+
+			for _, attr := range user.Attributes {
+				if *attr.Name == constants.CognitoAttrSub {
+					userID = *attr.Value
+				} else if *attr.Name == constants.CognitoAttrNickName {
+					userNickName = *attr.Value
+				}
+			}
+
+			users = append(users, models.User{
+				UserID:       userID,
+				UserNickName: userNickName,
+			})
+		}
+		return !lastPage
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

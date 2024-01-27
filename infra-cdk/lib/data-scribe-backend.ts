@@ -48,6 +48,10 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   updateSectionLambda: lambdaFunctionsStack.updateSectionLambda,
   updateItemTitleLambda: lambdaFunctionsStack.updateItemTitleLambda,
 
+  // User Lambdas
+  getUserIDLambda: lambdaFunctionsStack.getUserIDLambda,
+  getAllUsersLambda: lambdaFunctionsStack.getAllUsersLambda,
+
   // User Pool
   userPool: cognitoStack.userPool,
 });

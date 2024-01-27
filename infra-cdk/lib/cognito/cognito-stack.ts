@@ -25,6 +25,7 @@ export class CognitoUserPoolStack extends cdk.Stack {
         code: lambda.Code.fromAsset(
           path.join(__dirname, "./lambda/build/lambda.zip")
         ),
+        memorySize: 1024,
       }
     );
 
