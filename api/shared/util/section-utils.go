@@ -416,13 +416,13 @@ func ResetTextOutputResults(section *models.ReportSection) {
 func insertSectionInReport(report *models.Report, partIndex int, sectionIndex int, section models.ReportSection) error {
 	if partIndex < 0 || partIndex >= len(report.Parts) {
 		// Handle out of range partIndex
-		return fmt.Errorf("unable to insert section into report. part index out of bounds")
+		return fmt.Errorf("unable to insert section into template. part index out of bounds")
 	}
 
 	part := &report.Parts[partIndex]
 	if sectionIndex < -1 || sectionIndex > len(part.Sections) {
 		// Handle out of range sectionIndex
-		return fmt.Errorf("unable to insert section into report. section index out of bounds")
+		return fmt.Errorf("unable to insert section into template. section index out of bounds")
 	}
 
 	// The first insert will be inserting into nil
@@ -431,10 +431,13 @@ func insertSectionInReport(report *models.Report, partIndex int, sectionIndex in
 	}
 
 	// Special case handling for inserting at the beginning
-	if sectionIndex == -1 {
-		sectionIndex = 0
-	} else {
-		// Increment to insert after the specified index
+	if sectionIndex == 0 {
+		part.Sections = append([]models.ReportSection{section}, part.Sections...)
+		return nil
+	}
+
+	// Adjust the index to insert after the specified sectionIndex
+	if sectionIndex != -1 {
 		sectionIndex++
 	}
 
@@ -488,13 +491,13 @@ func moveSectionInReport(report *models.Report, oldPartIndex, oldSectionIndex, n
 func insertSectionInTemplate(template *models.Template, partIndex int, sectionIndex int, section models.TemplateSection) error {
 	if partIndex < 0 || partIndex >= len(template.Parts) {
 		// Handle out of range partIndex
-		return fmt.Errorf("unable to insert section into report. part index out of bounds")
+		return fmt.Errorf("unable to insert section into template. part index out of bounds")
 	}
 
 	part := &template.Parts[partIndex]
 	if sectionIndex < -1 || sectionIndex > len(part.Sections) {
 		// Handle out of range sectionIndex
-		return fmt.Errorf("unable to insert section into report. section index out of bounds")
+		return fmt.Errorf("unable to insert section into template. section index out of bounds")
 	}
 
 	// The first insert will be inserting into nil
@@ -503,10 +506,13 @@ func insertSectionInTemplate(template *models.Template, partIndex int, sectionIn
 	}
 
 	// Special case handling for inserting at the beginning
-	if sectionIndex == -1 {
-		sectionIndex = 0
-	} else {
-		// Increment to insert after the specified index
+	if sectionIndex == 0 {
+		part.Sections = append([]models.TemplateSection{section}, part.Sections...)
+		return nil
+	}
+
+	// Adjust the index to insert after the specified sectionIndex
+	if sectionIndex != -1 {
 		sectionIndex++
 	}
 
