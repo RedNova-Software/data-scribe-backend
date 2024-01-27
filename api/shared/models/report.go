@@ -28,13 +28,13 @@ type ReportTextOutput struct {
 type ReportSection struct {
 	Title           string
 	OutputGenerated bool
-	Questions       []ReportQuestion   `dynamodbav:"questions"`
-	TextOutputs     []ReportTextOutput `dynamodbav:"textOutputs"`
+	Questions       []ReportQuestion
+	TextOutputs     []ReportTextOutput
 }
 
 type ReportPart struct {
 	Title    string
-	Sections []ReportSection `dynamodbav:"sections"`
+	Sections []ReportSection
 }
 
 type ModelInfo struct {
@@ -55,5 +55,7 @@ type Report struct {
 	ReportType string
 	Title      string
 	City       string
-	Parts      []ReportPart `dynamodbav:"parts"`
+	Parts      []ReportPart
+	OwnedBy    User
+	SharedWith []User
 }

@@ -5,6 +5,7 @@ import { accountID } from "./constants/env-constants";
 import { DynamoDBStack } from "./dynamodb/dynamodb-stack";
 import { LambdasStack } from "./lambda/lambda-stack";
 import { GatewayStack } from "./gateway/gateway-stack";
+import { CognitoUserPoolStack } from "./cognito/cognito-stack";
 
 const app = new cdk.App();
 const env = {
@@ -14,10 +15,16 @@ const env = {
 
 const dynamoDBStack = new DynamoDBStack(app, "DynamoDBStack", { env });
 
+// Instantiate the Cognito User Pool Stack
+const cognitoStack = new CognitoUserPoolStack(app, "CognitoStack", {
+  env: env, // Specify the account and region
+});
+
 const lambdaFunctionsStack = new LambdasStack(app, "LambdaStack", {
   env,
   reportTable: dynamoDBStack.reportTable,
   templateTable: dynamoDBStack.templateTable,
+  userPool: cognitoStack.userPool,
 });
 
 const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
@@ -40,4 +47,7 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   updatePartLambda: lambdaFunctionsStack.updatePartLambda,
   updateSectionLambda: lambdaFunctionsStack.updateSectionLambda,
   updateItemTitleLambda: lambdaFunctionsStack.updateItemTitleLambda,
+
+  // User Pool
+  userPool: cognitoStack.userPool,
 });

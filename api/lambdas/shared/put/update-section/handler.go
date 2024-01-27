@@ -34,9 +34,18 @@ type TemplateSectionContents struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	var req UpdatedSectionRequest
 
-	err := json.Unmarshal([]byte(request.Body), &req)
+	err = json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
@@ -65,7 +74,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 
-		err = util.UpdateSectionInReport(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs, req.DeleteGeneratedOutput)
+		err = util.UpdateSectionInReport(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs, req.DeleteGeneratedOutput, userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -87,7 +96,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 
-		err = util.UpdateSectionInTemplate(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs)
+		err = util.UpdateSectionInTemplate(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs, userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{

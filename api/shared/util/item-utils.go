@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func UpdateItemTitle(itemType constants.ItemType, itemID, newTitle string) error {
+func UpdateItemTitle(itemType constants.ItemType, itemID, newTitle string, userID string) error {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)

@@ -26,4 +26,6 @@ type Template struct {
 	TemplateID string
 	Title      string
 	Parts      []TemplatePart
+	OwnedBy    User
+	SharedWith []User
 }

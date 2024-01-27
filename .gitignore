@@ -9,6 +9,8 @@ pkg
 # Compiled lambda binaries
 infra-cdk/bin/lambdas/*
 
+infra-cdk/lib/cognito/lambda/build/*
+
 # CDK asset staging directory
 .cdk.staging
 cdk.out

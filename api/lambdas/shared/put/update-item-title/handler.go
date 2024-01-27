@@ -18,8 +18,17 @@ type UpdateReportTitleRequest struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	var req UpdateReportTitleRequest
-	err := json.Unmarshal([]byte(request.Body), &req)
+	err = json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
@@ -37,7 +46,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	if req.ItemType == constants.Report {
-		err = util.UpdateItemTitle(constants.Report, req.ItemID, req.NewTitle)
+		err = util.UpdateItemTitle(constants.Report, req.ItemID, req.NewTitle, userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -47,7 +56,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 	} else if req.ItemType == constants.Template {
-		err = util.UpdateItemTitle(constants.Template, req.ItemID, req.NewTitle)
+		err = util.UpdateItemTitle(constants.Template, req.ItemID, req.NewTitle, userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{

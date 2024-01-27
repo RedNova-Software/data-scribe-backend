@@ -16,6 +16,7 @@ func AddPartToItem(
 	itemID string,
 	partTitle string,
 	partIndex int,
+	userID string,
 ) error {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
@@ -26,7 +27,7 @@ func AddPartToItem(
 
 	if itemType == constants.Report {
 		tableName := os.Getenv(constants.ReportTable)
-		report, err := GetReport(itemID)
+		report, err := GetReport(itemID, userID)
 
 		if err != nil {
 			return fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -69,7 +70,7 @@ func AddPartToItem(
 
 	} else if itemType == constants.Template {
 		tableName = os.Getenv(constants.TemplateTable)
-		template, err := GetTemplate(itemID)
+		template, err := GetTemplate(itemID, userID)
 
 		if err != nil {
 			return fmt.Errorf("error getting template from DynamoDB: %v", err)
@@ -122,6 +123,7 @@ func UpdatePartInItem(
 	oldIndex int,
 	newIndex int,
 	newTitle string,
+	userID string,
 ) error {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -131,7 +133,7 @@ func UpdatePartInItem(
 
 	if itemType == constants.Report {
 		tableName := os.Getenv(constants.ReportTable)
-		report, err := GetReport(itemID)
+		report, err := GetReport(itemID, userID)
 
 		if err != nil {
 			return fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -170,7 +172,7 @@ func UpdatePartInItem(
 
 	} else if itemType == constants.Template {
 		tableName := os.Getenv(constants.TemplateTable)
-		template, err := GetTemplate(itemID)
+		template, err := GetTemplate(itemID, userID)
 
 		if err != nil {
 			return fmt.Errorf("error getting template from DynamoDB: %v", err)

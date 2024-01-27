@@ -8,3 +8,7 @@ const (
 const (
 	OpenAIKey string = "OPENAI_API_KEY"
 )
+
+const (
+	UserPoolID string = "USER_POOL_ID"
+)

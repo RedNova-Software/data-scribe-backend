@@ -12,6 +12,15 @@ import (
 )
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	// Extract the ReportID from the query string parameters
 	// Access the reportID query string parameter
 	reportID := request.QueryStringParameters["reportID"]
@@ -25,7 +34,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	report, err := util.GetReport(reportID)
+	report, err := util.GetReport(reportID, userID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

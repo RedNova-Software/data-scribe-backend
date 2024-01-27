@@ -21,8 +21,17 @@ type AddSectionRequest struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	var req AddSectionRequest
-	err := json.Unmarshal([]byte(request.Body), &req)
+	err = json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
@@ -39,7 +48,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	err = util.GenerateSection(req.ReportID, req.PartIndex, req.SectionIndex, req.Answers, req.GenerateAIOutput)
+	err = util.GenerateSection(req.ReportID, req.PartIndex, req.SectionIndex, req.Answers, req.GenerateAIOutput, userID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

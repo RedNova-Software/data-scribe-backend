@@ -18,6 +18,15 @@ type CreateTemplateRequest struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	if request.HTTPMethod != "POST" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusMethodNotAllowed,
@@ -27,7 +36,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	var req CreateTemplateRequest
-	err := json.Unmarshal([]byte(request.Body), &req)
+	err = json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
@@ -46,10 +55,24 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	templateID := uuid.New().String()
 
+	userNickName, err := util.GetUserNickname(userID)
+
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Internal Server Error: " + err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	template := models.Template{
 		TemplateID: templateID,
 		Title:      req.Title,
 		Parts:      make([]models.TemplatePart, 0),
+		OwnedBy: models.User{
+			UserID:       userID,
+			UserNickName: userNickName,
+		},
 	}
 
 	err = util.PutNewTemplate(template)

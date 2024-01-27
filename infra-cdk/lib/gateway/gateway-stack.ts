@@ -6,7 +6,6 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import path = require("path");
-import { userPoolId } from "../constants/cognito-constants";
 
 interface GatewayStackProps extends cdk.StackProps {
   // Report Lambdas
@@ -27,6 +26,9 @@ interface GatewayStackProps extends cdk.StackProps {
   updatePartLambda: lambda.IFunction;
   updateSectionLambda: lambda.IFunction;
   updateItemTitleLambda: lambda.IFunction;
+
+  // Cognito User Pool
+  userPool: cognito.UserPool;
 }
 
 export class GatewayStack extends cdk.Stack {
@@ -58,7 +60,7 @@ export class GatewayStack extends cdk.Stack {
     const userPool = cognito.UserPool.fromUserPoolId(
       this,
       "DataScribeUserPool",
-      userPoolId
+      props.userPool.userPoolId
     );
 
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(

@@ -12,12 +12,21 @@ import (
 )
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	reports, err := util.GetAllReports()
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
+	reports, err := util.GetAllReports(userID)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
-			Body:       "Internal Server Error",
+			Body:       "Internal Server Error: " + err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
@@ -27,7 +36,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		fmt.Println("Error marshalling response:", err)
 		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
-			Body:       "Internal Server Error",
+			Body:       "Internal Server Error: " + err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}

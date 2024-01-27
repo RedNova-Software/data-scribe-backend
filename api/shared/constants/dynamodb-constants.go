@@ -25,3 +25,7 @@ const (
 	QuestionsField  string = "Questions"
 	IndexField      string = "Index"
 )
+
+const (
+	OwnerUserIDField string = "OwnedBy.UserID"
+)

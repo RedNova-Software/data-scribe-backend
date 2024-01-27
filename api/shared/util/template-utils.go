@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
@@ -41,7 +42,7 @@ func PutNewTemplate(template models.Template) error {
 	return nil
 }
 
-func GetTemplate(templateID string) (*models.Template, error) {
+func GetTemplate(templateID string, userID string) (*models.Template, error) {
 	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	keyName := constants.TemplateIDField
@@ -71,9 +72,17 @@ func GetTemplate(templateID string) (*models.Template, error) {
 		return nil, nil // Item not found
 	}
 
-	var template models.Template
+	var template *models.Template
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &template)
+
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling dynamo item into template: %v", err)
+	}
+
+	if !isUserAuthorizedForTemplate(template, userID) {
+		return nil, fmt.Errorf("user does not have access to this report")
+	}
 
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
@@ -81,40 +90,50 @@ func GetTemplate(templateID string) (*models.Template, error) {
 	// Same for an empty part, the sections will be null. So, to return a list
 	// to the frontend, we need to set it explicitly here.
 	// https://github.com/aws/aws-sdk-go/issues/682
-	ensureNonNullTemplateFields(&template)
+	ensureNonNullTemplateFields(template)
 
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling dynamo item into template: %v", err)
-	}
-
-	return &template, nil
+	return template, nil
 }
 
-func GetAllTemplates() ([]models.Template, error) {
+func GetAllTemplates(userID string) ([]models.Template, error) {
 	tableName := os.Getenv(constants.TemplateTable)
-	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
+	// Create a new DynamoDB session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(constants.USEast2),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error getting dynamodb client: %v", err)
+		return nil, fmt.Errorf("error creating new session: %v", err)
 	}
+
+	dynamoDBClient := dynamodb.New(sess)
 
 	// Fields to retrieve
 	fields := []string{
 		constants.TemplateIDField,
 		constants.TitleField,
+		constants.OwnerUserIDField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	// Create a DynamoDB ScanInput with the ProjectionExpression
+	// Use FilterExpression for nested attributes
+	filterExpression := constants.OwnerUserIDField + " = :userID"
+
 	input := &dynamodb.ScanInput{
-		TableName:            aws.String(tableName),
+		TableName:        aws.String(tableName),
+		FilterExpression: aws.String(filterExpression),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":userID": {
+				S: aws.String(userID),
+			},
+		},
 		ProjectionExpression: aws.String(projectionExpression),
 	}
 
 	result, err := dynamoDBClient.Scan(input)
 	if err != nil {
-		return nil, fmt.Errorf("error scanning DynamoDB table: %v", err)
+		return nil, fmt.Errorf("error querying DynamoDB table: %v", err)
 	}
 
 	templates := []models.Template{}
@@ -162,4 +181,21 @@ func ensureNonNullTemplateFields(report *models.Template) {
 			}
 		}
 	}
+}
+
+// isUserAuthorizedForReport checks if a given userID is the owner of the template or is in the shared users list
+func isUserAuthorizedForTemplate(template *models.Template, userID string) bool {
+	// Check if the user is the owner
+	if template.OwnedBy.UserID == userID {
+		return true
+	}
+
+	// Check if the user is in the shared list
+	for _, user := range template.SharedWith {
+		if user.UserID == userID {
+			return true
+		}
+	}
+
+	return false
 }

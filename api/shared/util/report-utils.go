@@ -41,7 +41,7 @@ func PutNewReport(report models.Report) error {
 	return nil
 }
 
-func GetReport(reportID string) (*models.Report, error) {
+func GetReport(reportID string, userID string) (*models.Report, error) {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	const keyName = constants.ReportIDField
@@ -71,9 +71,17 @@ func GetReport(reportID string) (*models.Report, error) {
 		return nil, nil // Item not found
 	}
 
-	var report models.Report
+	var report *models.Report
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &report)
+
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
+	}
+
+	if !isUserAuthorizedForReport(report, userID) {
+		return nil, fmt.Errorf("user does not have access to this report")
+	}
 
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
@@ -81,20 +89,15 @@ func GetReport(reportID string) (*models.Report, error) {
 	// Same for an empty part, the sections will be null. So, to return a list
 	// to the frontend, we need to set it explicitly here.
 	// https://github.com/aws/aws-sdk-go/issues/682
-	ensureNonNullReportFields(&report)
+	ensureNonNullReportFields(report)
 
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
-	}
-
-	return &report, nil
+	return report, nil
 }
 
-func GetAllReports() ([]models.Report, error) {
+func GetAllReports(userID string) ([]models.Report, error) {
 	tableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
-
 	if err != nil {
 		return nil, fmt.Errorf("error getting dynamodb client: %v", err)
 	}
@@ -105,19 +108,28 @@ func GetAllReports() ([]models.Report, error) {
 		constants.ReportTypeField,
 		constants.TitleField,
 		constants.CityField,
+		constants.OwnerUserIDField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	// Create a DynamoDB ScanInput with the ProjectionExpression
+	// Use FilterExpression for nested attributes
+	filterExpression := constants.OwnerUserIDField + " = :userID"
+
 	input := &dynamodb.ScanInput{
-		TableName:            aws.String(tableName),
+		TableName:        aws.String(tableName),
+		FilterExpression: aws.String(filterExpression),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":userID": {
+				S: aws.String(userID),
+			},
+		},
 		ProjectionExpression: aws.String(projectionExpression),
 	}
 
 	result, err := dynamoDBClient.Scan(input)
 	if err != nil {
-		return nil, fmt.Errorf("error scanning DynamoDB table: %v", err)
+		return nil, fmt.Errorf("error querying DynamoDB table: %v", err)
 	}
 
 	reports := []models.Report{}
@@ -165,4 +177,21 @@ func ensureNonNullReportFields(report *models.Report) {
 			}
 		}
 	}
+}
+
+// isUserAuthorizedForReport checks if a given userID is the owner of the report or is in the shared users list
+func isUserAuthorizedForReport(report *models.Report, userID string) bool {
+	// Check if the user is the owner
+	if report.OwnedBy.UserID == userID {
+		return true
+	}
+
+	// Check if the user is in the shared list
+	for _, user := range report.SharedWith {
+		if user.UserID == userID {
+			return true
+		}
+	}
+
+	return false
 }
