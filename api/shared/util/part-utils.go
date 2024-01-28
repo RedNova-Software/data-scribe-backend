@@ -219,7 +219,7 @@ func insertReportPart(report *models.Report, part models.ReportPart, index int) 
 	}
 
 	// Handle the case for appending at the start
-	if index == 0 {
+	if index == -1 {
 		report.Parts = append([]models.ReportPart{part}, report.Parts...)
 		return nil
 	}
@@ -233,33 +233,33 @@ func insertReportPart(report *models.Report, part models.ReportPart, index int) 
 }
 
 func moveReportPart(report *models.Report, fromIndex, toIndex int) error {
-	if fromIndex < 0 || fromIndex >= len(report.Parts) || toIndex < -1 || toIndex > len(report.Parts) {
+	if fromIndex < 0 || fromIndex >= len(report.Parts) || toIndex < -1 || toIndex >= len(report.Parts) {
 		// Handle the error or ignore if indices are out of bounds
 		return fmt.Errorf("unable to move part in report. index out of bounds")
 	}
 
-	// Check if fromIndex and toIndex are the same, in which case, do not move
-	if fromIndex == toIndex {
-		return nil // No action needed as the part is already in the desired position
+	// Check if fromIndex and toIndex are the same, or if the part is already after the toIndex
+	if fromIndex == toIndex || fromIndex == toIndex+1 {
+		return nil // No action needed as the part is already in or after the desired position
 	}
 
 	// Remove the part from the current position
 	part := report.Parts[fromIndex]
 	report.Parts = append(report.Parts[:fromIndex], report.Parts[fromIndex+1:]...)
 
-	// If toIndex is the last index, simply append the part to the end
-	if toIndex == len(report.Parts) {
-		report.Parts = append(report.Parts, part)
+	// Handle the case for appending at the start
+	if toIndex == -1 {
+		report.Parts = append([]models.ReportPart{part}, report.Parts...)
 		return nil
 	}
 
-	// Adjust toIndex if it is greater than fromIndex
-	if toIndex > fromIndex {
+	// Adjust toIndex for the removed part
+	if fromIndex < toIndex {
 		toIndex--
-	} else {
-		// Increment toIndex to insert after the specified index
-		toIndex++
 	}
+
+	// Insert the part after the toIndex
+	toIndex++ // Increment toIndex to insert after
 
 	// Reinsert the part at the new position
 	report.Parts = append(report.Parts[:toIndex], append([]models.ReportPart{part}, report.Parts[toIndex:]...)...)
@@ -272,7 +272,7 @@ func insertTemplatePart(template *models.Template, part models.TemplatePart, ind
 	}
 
 	// Handle the case for appending at the start
-	if index == 0 {
+	if index == -1 {
 		template.Parts = append([]models.TemplatePart{part}, template.Parts...)
 		return nil
 	}
@@ -286,33 +286,33 @@ func insertTemplatePart(template *models.Template, part models.TemplatePart, ind
 }
 
 func moveTemplatePart(template *models.Template, fromIndex, toIndex int) error {
-	if fromIndex < 0 || fromIndex >= len(template.Parts) || toIndex < -1 || toIndex > len(template.Parts) {
+	if fromIndex < 0 || fromIndex >= len(template.Parts) || toIndex < -1 || toIndex >= len(template.Parts) {
 		// Handle the error or ignore if indices are out of bounds
-		return fmt.Errorf("unable to move part in report. index out of bounds")
+		return fmt.Errorf("unable to move part in template. index out of bounds")
 	}
 
-	// Check if fromIndex and toIndex are the same, in which case, do not move
-	if fromIndex == toIndex {
-		return nil // No action needed as the part is already in the desired position
+	// Check if fromIndex and toIndex are the same
+	if fromIndex == toIndex || fromIndex == toIndex+1 {
+		return nil // No action needed as the part is either in the desired position or already after the toIndex
 	}
 
 	// Remove the part from the current position
 	part := template.Parts[fromIndex]
 	template.Parts = append(template.Parts[:fromIndex], template.Parts[fromIndex+1:]...)
 
-	// If toIndex is the last index, simply append the part to the end
-	if toIndex == len(template.Parts) {
-		template.Parts = append(template.Parts, part)
+	// Handle the case for appending at the start
+	if toIndex == -1 {
+		template.Parts = append([]models.TemplatePart{part}, template.Parts...)
 		return nil
 	}
 
-	// Adjust toIndex if it is greater than fromIndex
-	if toIndex > fromIndex {
+	// Adjust toIndex for the removed part
+	if fromIndex < toIndex {
 		toIndex--
-	} else {
-		// Increment toIndex to insert after the specified index
-		toIndex++
 	}
+
+	// Insert the part after the toIndex
+	toIndex++ // Increment toIndex to insert after
 
 	// Reinsert the part at the new position
 	template.Parts = append(template.Parts[:toIndex], append([]models.TemplatePart{part}, template.Parts[toIndex:]...)...)
