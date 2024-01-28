@@ -150,7 +150,9 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
 		}
 
-		createReportSharedWith(reportMetadata, report.SharedWithIDs)
+		createReportMetadataSharedWith(reportMetadata, report.SharedWithIDs)
+
+		setReportMetadataOwnerUserName(reportMetadata)
 
 		ensureNonNullReportMetadataFields(reportMetadata)
 
@@ -240,7 +242,7 @@ func ensureNonNullReportMetadataFields(report *models.ReportMetadata) {
 	}
 }
 
-func createReportSharedWith(report *models.ReportMetadata, sharedWithIDs []string) {
+func createReportMetadataSharedWith(reportMetadata *models.ReportMetadata, sharedWithIDs []string) {
 	// Create a slice to hold User structs
 	var sharedWithUsers []models.User
 
@@ -264,7 +266,17 @@ func createReportSharedWith(report *models.ReportMetadata, sharedWithIDs []strin
 	}
 
 	// Update the SharedWith field of the report with the slice of User structs
-	report.SharedWith = sharedWithUsers
+	reportMetadata.SharedWith = sharedWithUsers
+}
+
+func setReportMetadataOwnerUserName(reportMetadata *models.ReportMetadata) {
+	userNickName, err := GetUserNickname(reportMetadata.OwnedBy.UserID)
+
+	if err != nil {
+		userNickName = "*Error Fetching Nickname*"
+	}
+
+	reportMetadata.OwnedBy.UserNickName = userNickName
 }
 
 // isUserAuthorizedForReport checks if a given userID is the owner of the report or is in the shared users list

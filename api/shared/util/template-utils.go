@@ -153,7 +153,9 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
 		}
 
-		createTemplateSharedWith(templateMetadata, template.SharedWithIDs)
+		createTemplateMetadataSharedWith(templateMetadata, template.SharedWithIDs)
+
+		setTemplateMetadataOwnerUserName(templateMetadata)
 
 		ensureNonNullTemplateMetadataFields(templateMetadata)
 
@@ -244,7 +246,7 @@ func ensureNonNullTemplateMetadataFields(template *models.TemplateMetadata) {
 	}
 }
 
-func createTemplateSharedWith(template *models.TemplateMetadata, sharedWithIDs []string) {
+func createTemplateMetadataSharedWith(templateMetadata *models.TemplateMetadata, sharedWithIDs []string) {
 	// Create a slice to hold User structs
 	var sharedWithUsers []models.User
 
@@ -268,7 +270,17 @@ func createTemplateSharedWith(template *models.TemplateMetadata, sharedWithIDs [
 	}
 
 	// Update the SharedWith field of the report with the slice of User structs
-	template.SharedWith = sharedWithUsers
+	templateMetadata.SharedWith = sharedWithUsers
+}
+
+func setTemplateMetadataOwnerUserName(templateMetadata *models.TemplateMetadata) {
+	userNickName, err := GetUserNickname(templateMetadata.OwnedBy.UserID)
+
+	if err != nil {
+		userNickName = "*Error Fetching Nickname*"
+	}
+
+	templateMetadata.OwnedBy.UserNickName = userNickName
 }
 
 // isUserAuthorizedForReport checks if a given userID is the owner of the template or is in the shared users list
