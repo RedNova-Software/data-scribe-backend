@@ -147,6 +147,44 @@ func GetAllReports(userID string) ([]models.Report, error) {
 	return reports, nil
 }
 
+func SetReportShared(reportID string, users []models.User, userID string) error {
+	tableName := os.Getenv(constants.ReportTable)
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	report, err := GetReport(reportID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	report.SharedWith = users
+
+	av, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	updateInput := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ensureNonNullReportFields(report *models.Report) {
 	// Check if Parts is nil, if so, initialize it as an empty slice
 	if report.Parts == nil {

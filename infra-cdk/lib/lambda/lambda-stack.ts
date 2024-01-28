@@ -31,6 +31,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly updatePartLambda: lambda.IFunction;
   public readonly updateSectionLambda: lambda.IFunction;
   public readonly updateItemTitleLambda: lambda.IFunction;
+  public readonly shareItemLambda: lambda.IFunction;
 
   // User Lambdas
   public readonly getUserIDLambda: lambda.IFunction;
@@ -303,6 +304,22 @@ export class LambdasStack extends cdk.Stack {
       this.updateItemTitleLambda,
       "cognito-idp:AdminGetUser"
     );
+
+    this.shareItemLambda = new lambda.Function(this, "ShareItemLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/share-item")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+      environment: {
+        USER_POOL_ID: props.userPool.userPoolId,
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+    });
+    props.userPool.grant(this.shareItemLambda, "cognito-idp:ListUsers");
+
     // --------------------------------------------------------- //
 
     // User Lambdas
@@ -325,6 +342,8 @@ export class LambdasStack extends cdk.Stack {
       memorySize: 1024,
       environment: {
         USER_POOL_ID: props.userPool.userPoolId,
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
       },
     });
     props.userPool.grant(this.getAllUsersLambda, "cognito-idp:ListUsers");

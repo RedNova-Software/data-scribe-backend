@@ -151,6 +151,44 @@ func GetAllTemplates(userID string) ([]models.Template, error) {
 	return templates, nil
 }
 
+func SetTemplateShared(templateID string, users []models.User, userID string) error {
+	tableName := os.Getenv(constants.TemplateTable)
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	template, err := GetTemplate(templateID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if template == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	template.SharedWith = users
+
+	av, err := dynamodbattribute.MarshalMap(template)
+	if err != nil {
+		return err
+	}
+
+	updateInput := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ensureNonNullTemplateFields(report *models.Template) {
 	// Check if Parts is nil, if so, initialize it as an empty slice
 	if report.Parts == nil {
