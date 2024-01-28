@@ -6,7 +6,6 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import path = require("path");
-import { userPoolId } from "../constants/cognito-constants";
 
 interface GatewayStackProps extends cdk.StackProps {
   // Report Lambdas
@@ -27,6 +26,14 @@ interface GatewayStackProps extends cdk.StackProps {
   updatePartLambda: lambda.IFunction;
   updateSectionLambda: lambda.IFunction;
   updateItemTitleLambda: lambda.IFunction;
+  shareItemLambda: lambda.IFunction;
+
+  // User Lambdas
+  getUserIDLambda: lambda.IFunction;
+  getAllUsersLambda: lambda.IFunction;
+
+  // Cognito User Pool
+  userPool: cognito.UserPool;
 }
 
 export class GatewayStack extends cdk.Stack {
@@ -58,7 +65,7 @@ export class GatewayStack extends cdk.Stack {
     const userPool = cognito.UserPool.fromUserPoolId(
       this,
       "DataScribeUserPool",
-      userPoolId
+      props.userPool.userPoolId
     );
 
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(
@@ -69,6 +76,8 @@ export class GatewayStack extends cdk.Stack {
         identitySource: "method.request.header.Authorization", // default
       }
     );
+
+    const userResource = gateway.root.addResource("users");
 
     const reportResource = gateway.root.addResource("reports");
     const reportPartResource = reportResource.addResource("parts");
@@ -226,5 +235,40 @@ export class GatewayStack extends cdk.Stack {
         authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
+
+    const shareItemEndpoint = sharedResource.addResource("share");
+    shareItemEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.shareItemLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    // --------------------------------------------------------- //
+    // User Endpoints
+
+    const getUserIDEndpoint = userResource.addResource("getCurrentID");
+    getUserIDEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getUserIDLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const getAllUsersEndpoint = userResource.addResource("all");
+    getAllUsersEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getAllUsersLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    // --------------------------------------------------------- //
   }
 }

@@ -1,14 +1,15 @@
 import * as cdk from "aws-cdk-lib";
 import { type Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as cognito from "aws-cdk-lib/aws-cognito";
 import type * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import path = require("path");
 import * as fs from "fs";
-import { memoryUsage } from "process";
 
 interface LambdasStackProps extends cdk.StackProps {
   reportTable: dynamodb.Table;
   templateTable: dynamodb.Table;
+  userPool: cognito.UserPool;
 }
 
 export class LambdasStack extends cdk.Stack {
@@ -29,8 +30,12 @@ export class LambdasStack extends cdk.Stack {
   public readonly addSectionLambda: lambda.IFunction;
   public readonly updatePartLambda: lambda.IFunction;
   public readonly updateSectionLambda: lambda.IFunction;
-
   public readonly updateItemTitleLambda: lambda.IFunction;
+  public readonly shareItemLambda: lambda.IFunction;
+
+  // User Lambdas
+  public readonly getUserIDLambda: lambda.IFunction;
+  public readonly getAllUsersLambda: lambda.IFunction;
 
   // --------------------------------------------------------- //
 
@@ -47,10 +52,12 @@ export class LambdasStack extends cdk.Stack {
       runtime: lambda.Runtime.PROVIDED_AL2023,
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
+        USER_POOL_ID: props.userPool.userPoolId,
       },
       memorySize: 1024,
     });
     props.reportTable.grantWriteData(this.createReportLambda);
+    props.userPool.grant(this.createReportLambda, "cognito-idp:AdminGetUser");
 
     this.getReportByIDLambda = new lambda.Function(
       this,
@@ -63,11 +70,13 @@ export class LambdasStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
     );
     props.reportTable.grantReadData(this.getReportByIDLambda);
+    props.userPool.grant(this.getReportByIDLambda, "cognito-idp:AdminGetUser");
 
     this.getAllReportsLambda = new lambda.Function(
       this,
@@ -80,11 +89,13 @@ export class LambdasStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
     );
     props.reportTable.grantReadData(this.getAllReportsLambda);
+    props.userPool.grant(this.getAllReportsLambda, "cognito-idp:AdminGetUser");
 
     this.getAllReportTypesLambda = new lambda.Function(
       this,
@@ -118,12 +129,17 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
           OPENAI_API_KEY: openAIKey,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         timeout: cdk.Duration.minutes(5),
         memorySize: 1024,
       }
     );
     props.reportTable.grantReadWriteData(this.generateSectionLambda);
+    props.userPool.grant(
+      this.generateSectionLambda,
+      "cognito-idp:AdminGetUser"
+    );
     // --------------------------------------------------------- //
     // Template Lambdas
 
@@ -138,11 +154,13 @@ export class LambdasStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           TEMPLATE_TABLE: props.templateTable.tableName,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
     );
     props.templateTable.grantReadWriteData(this.createTemplateLambda);
+    props.userPool.grant(this.createTemplateLambda, "cognito-idp:AdminGetUser");
 
     this.getTemplateByIDLambda = new lambda.Function(
       this,
@@ -155,11 +173,16 @@ export class LambdasStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           TEMPLATE_TABLE: props.templateTable.tableName,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
     );
     props.templateTable.grantReadData(this.getTemplateByIDLambda);
+    props.userPool.grant(
+      this.getTemplateByIDLambda,
+      "cognito-idp:AdminGetUser"
+    );
 
     this.getAllTemplatesLambda = new lambda.Function(
       this,
@@ -172,11 +195,16 @@ export class LambdasStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           TEMPLATE_TABLE: props.templateTable.tableName,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
     );
     props.templateTable.grantReadData(this.getAllTemplatesLambda);
+    props.userPool.grant(
+      this.getAllTemplatesLambda,
+      "cognito-idp:AdminGetUser"
+    );
 
     // --------------------------------------------------------- //
     // Shared Lambdas
@@ -190,11 +218,13 @@ export class LambdasStack extends cdk.Stack {
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
+        USER_POOL_ID: props.userPool.userPoolId,
       },
       memorySize: 1024,
     });
     props.reportTable.grantReadWriteData(this.addPartLambda);
     props.templateTable.grantReadWriteData(this.addPartLambda);
+    props.userPool.grant(this.addPartLambda, "cognito-idp:AdminGetUser");
 
     this.addSectionLambda = new lambda.Function(this, "AddSectionLambda", {
       code: lambda.Code.fromAsset(
@@ -205,11 +235,13 @@ export class LambdasStack extends cdk.Stack {
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
+        USER_POOL_ID: props.userPool.userPoolId,
       },
       memorySize: 1024,
     });
     props.reportTable.grantReadWriteData(this.addSectionLambda);
     props.templateTable.grantReadWriteData(this.addSectionLambda);
+    props.userPool.grant(this.addSectionLambda, "cognito-idp:AdminGetUser");
 
     this.updatePartLambda = new lambda.Function(this, "UpdatePartLambda", {
       code: lambda.Code.fromAsset(
@@ -220,11 +252,13 @@ export class LambdasStack extends cdk.Stack {
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
+        USER_POOL_ID: props.userPool.userPoolId,
       },
       memorySize: 1024,
     });
     props.reportTable.grantReadWriteData(this.updatePartLambda);
     props.templateTable.grantReadWriteData(this.updatePartLambda);
+    props.userPool.grant(this.updatePartLambda, "cognito-idp:AdminGetUser");
 
     this.updateSectionLambda = new lambda.Function(
       this,
@@ -238,12 +272,14 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
           TEMPLATE_TABLE: props.templateTable.tableName,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
     );
     props.reportTable.grantReadWriteData(this.updateSectionLambda);
     props.templateTable.grantReadWriteData(this.updateSectionLambda);
+    props.userPool.grant(this.updateSectionLambda, "cognito-idp:AdminGetUser");
 
     this.updateItemTitleLambda = new lambda.Function(
       this,
@@ -257,12 +293,63 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
           TEMPLATE_TABLE: props.templateTable.tableName,
+          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
     );
     props.reportTable.grantReadWriteData(this.updateItemTitleLambda);
     props.templateTable.grantReadWriteData(this.updateItemTitleLambda);
+    props.userPool.grant(
+      this.updateItemTitleLambda,
+      "cognito-idp:AdminGetUser"
+    );
+
+    this.shareItemLambda = new lambda.Function(this, "ShareItemLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/share-item")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+      environment: {
+        USER_POOL_ID: props.userPool.userPoolId,
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+    });
+    props.reportTable.grantReadWriteData(this.shareItemLambda);
+    props.templateTable.grantReadWriteData(this.shareItemLambda);
+    props.userPool.grant(this.shareItemLambda, "cognito-idp:ListUsers");
+
+    // --------------------------------------------------------- //
+
+    // User Lambdas
+
+    this.getUserIDLambda = new lambda.Function(this, "GetUserIDLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/get-user-id")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+    });
+
+    this.getAllUsersLambda = new lambda.Function(this, "GetAllUsersLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/get-all-users")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+      environment: {
+        USER_POOL_ID: props.userPool.userPoolId,
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+    });
+    props.userPool.grant(this.getAllUsersLambda, "cognito-idp:ListUsers");
+
     // --------------------------------------------------------- //
   }
 }

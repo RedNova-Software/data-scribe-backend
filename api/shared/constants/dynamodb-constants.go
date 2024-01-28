@@ -25,3 +25,13 @@ const (
 	QuestionsField  string = "Questions"
 	IndexField      string = "Index"
 )
+
+const (
+	OwnerUserIDField   string = "OwnedBy.UserID"
+	SharedWithIDsField string = "SharedWithIDs"
+)
+
+const (
+	CreatedField      string = "Created"
+	LastModifiedField string = "LastModified"
+)

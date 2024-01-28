@@ -20,16 +20,17 @@ type CreateReportRequest struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	if request.HTTPMethod != "POST" {
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
 		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusMethodNotAllowed,
-			Body:       "Method Not Allowed",
+			StatusCode: http.StatusInternalServerError,
+			Body:       err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}
 
 	var req CreateReportRequest
-	err := json.Unmarshal([]byte(request.Body), &req)
+	err = json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
@@ -48,12 +49,29 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	reportID := uuid.New().String()
 
+	userNickName, err := util.GetUserNickname(userID)
+
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Internal Server Error: " + err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	report := models.Report{
 		ReportID:   reportID,
 		ReportType: req.ReportType,
 		Title:      req.Title,
 		City:       req.City,
 		Parts:      make([]models.ReportPart, 0),
+		OwnedBy: models.User{
+			UserID:       userID,
+			UserNickName: userNickName,
+		},
+		SharedWithIDs: make([]string, 0),
+		Created:       util.GetCurrentTime(),
+		LastModified:  util.GetCurrentTime(),
 	}
 
 	err = util.PutNewReport(report)

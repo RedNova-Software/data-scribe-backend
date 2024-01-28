@@ -4,8 +4,6 @@ import (
 	"api/shared/constants"
 	"api/shared/util"
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -22,29 +20,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	reports, err := util.GetAllReports(userID)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Body:       "Internal Server Error: " + err.Error(),
-			Headers:    constants.CorsHeaders,
-		}, nil
-	}
-
-	responseBody, err := json.Marshal(reports)
-	if err != nil {
-		fmt.Println("Error marshalling response:", err)
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Body:       "Internal Server Error: " + err.Error(),
-			Headers:    constants.CorsHeaders,
-		}, nil
-	}
-
+	// Return the report in the response body
 	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Body:       string(responseBody),
+		StatusCode: http.StatusOK,
+		Body:       userID,
 		Headers:    constants.CorsHeaders,
 	}, nil
 }

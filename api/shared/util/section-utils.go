@@ -15,14 +15,14 @@ import (
 )
 
 // AddSectionToReport adds a Section to a Part with a specific index in a specified report.
-func AddSectionToReport(reportID string, partIndex int, sectionIndex int, newSection models.ReportSection) error {
+func AddSectionToReport(reportID string, partIndex int, sectionIndex int, newSection models.ReportSection, userID string) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
-	report, err := GetReport(reportID)
+	report, err := GetReport(reportID, userID)
 
 	if err != nil {
 		return fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -37,6 +37,9 @@ func AddSectionToReport(reportID string, partIndex int, sectionIndex int, newSec
 	if err != nil {
 		return fmt.Errorf("error inserting report section: %v", err)
 	}
+
+	// Update last modified
+	report.LastModified = GetCurrentTime()
 
 	// Marshal the updated Report back to a map
 	updatedReport, err := dynamodbattribute.MarshalMap(report)
@@ -57,14 +60,14 @@ func AddSectionToReport(reportID string, partIndex int, sectionIndex int, newSec
 }
 
 // AddSectionToReportPart adds a Section to a Part with a specific index in a specified template.
-func AddSectionToTemplate(templateID string, partIndex int, sectionIndex int, newSection models.TemplateSection) error {
+func AddSectionToTemplate(templateID string, partIndex int, sectionIndex int, newSection models.TemplateSection, userID string) error {
 	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
-	template, err := GetTemplate(templateID)
+	template, err := GetTemplate(templateID, userID)
 
 	if err != nil {
 		return fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -79,6 +82,9 @@ func AddSectionToTemplate(templateID string, partIndex int, sectionIndex int, ne
 	if err != nil {
 		return fmt.Errorf("error inserting report section: %v", err)
 	}
+
+	// Update last modified
+	template.LastModified = GetCurrentTime()
 
 	// Marshal the updated Template back to a map
 	updatedTemplate, err := dynamodbattribute.MarshalMap(template)
@@ -108,6 +114,7 @@ func UpdateSectionInReport(
 	newQuestions []models.ReportQuestion,
 	newTextOutputs []models.ReportTextOutput,
 	deleteGeneratedOutput bool,
+	userID string,
 ) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -116,7 +123,7 @@ func UpdateSectionInReport(
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
-	report, err := GetReport(reportID)
+	report, err := GetReport(reportID, userID)
 	if err != nil {
 		return fmt.Errorf("error getting report: %v", err)
 	}
@@ -152,7 +159,13 @@ func UpdateSectionInReport(
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInReport(report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
+		if err != nil {
+			return err
+		}
 	}
+
+	// Update last modified
+	report.LastModified = GetCurrentTime()
 
 	av, err := dynamodbattribute.MarshalMap(report)
 	if err != nil {
@@ -182,6 +195,7 @@ func UpdateSectionInTemplate(
 	newSectionTitle string,
 	newQuestions []models.TemplateQuestion,
 	newTextOutputs []models.TemplateTextOutput,
+	userID string,
 ) error {
 	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -190,7 +204,7 @@ func UpdateSectionInTemplate(
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
-	template, err := GetTemplate(templateID)
+	template, err := GetTemplate(templateID, userID)
 	if err != nil {
 		return fmt.Errorf("error getting template: %v", err)
 	}
@@ -208,7 +222,13 @@ func UpdateSectionInTemplate(
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInTemplate(template, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
+		if err != nil {
+			return err
+		}
 	}
+
+	// Update last modified
+	template.LastModified = GetCurrentTime()
 
 	av, err := dynamodbattribute.MarshalMap(template)
 	if err != nil {
@@ -229,7 +249,7 @@ func UpdateSectionInTemplate(
 
 }
 
-func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, generateAIOutput bool) error {
+func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, generateAIOutput bool, userID string) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -237,7 +257,7 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 		return fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
-	report, err := GetReport(reportID)
+	report, err := GetReport(reportID, userID)
 
 	if err != nil {
 		return fmt.Errorf("error getting report from DynamoDB: %v", err)
@@ -269,6 +289,9 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 
 	// Set output generated after all sections generated successfully
 	section.OutputGenerated = true
+
+	// Update last modified
+	report.LastModified = GetCurrentTime()
 
 	// Update the report in DynamoDB
 	updatedReport, err := dynamodbattribute.MarshalMap(report)
@@ -441,7 +464,7 @@ func insertSectionInReport(report *models.Report, partIndex int, sectionIndex in
 	}
 
 	// Special case handling for inserting at the beginning
-	if sectionIndex == 0 {
+	if sectionIndex == -1 {
 		part.Sections = append([]models.ReportSection{section}, part.Sections...)
 		return nil
 	}
@@ -516,7 +539,7 @@ func insertSectionInTemplate(template *models.Template, partIndex int, sectionIn
 	}
 
 	// Special case handling for inserting at the beginning
-	if sectionIndex == 0 {
+	if sectionIndex == -1 {
 		part.Sections = append([]models.TemplateSection{section}, part.Sections...)
 		return nil
 	}

@@ -12,6 +12,15 @@ import (
 )
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	userID, err := util.ExtractUserID(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Body:       err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	// Extract the ReportID from the query string parameters
 	// Access the reportID query string parameter
 	templateID := request.QueryStringParameters["templateID"]
@@ -25,7 +34,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	template, err := util.GetTemplate(templateID)
+	template, err := util.GetTemplate(templateID, userID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

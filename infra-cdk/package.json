@@ -5,13 +5,14 @@
     "data-scribe-backend": "bin/data-scribe-backend.js"
   },
   "scripts": {
-    "deploy": "npm run build && cdk deploy --all",
+    "deploy": "npm run build && npm run cdk deploy --all",
     "build": "ts-node ./lib/helpers/build-go.ts",
-    "hotswap": "npm run build && cdk deploy --hotswap --all",
+    "hotswap": "npm run build && npm run cdk deploy --hotswap LambdaStack",
     "lint-fix": "eslint . --ext ts --fix",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "precdk": "rm -rf cdk.out"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
