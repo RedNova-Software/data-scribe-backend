@@ -110,6 +110,8 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 		constants.CityField,
 		constants.OwnerUserIDField,
 		constants.SharedWithIDsField,
+		constants.CreatedField,
+		constants.LastModifiedField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")

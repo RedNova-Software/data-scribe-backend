@@ -38,6 +38,9 @@ func AddSectionToReport(reportID string, partIndex int, sectionIndex int, newSec
 		return fmt.Errorf("error inserting report section: %v", err)
 	}
 
+	// Update last modified
+	report.LastModified = GetCurrentTime()
+
 	// Marshal the updated Report back to a map
 	updatedReport, err := dynamodbattribute.MarshalMap(report)
 	if err != nil {
@@ -79,6 +82,9 @@ func AddSectionToTemplate(templateID string, partIndex int, sectionIndex int, ne
 	if err != nil {
 		return fmt.Errorf("error inserting report section: %v", err)
 	}
+
+	// Update last modified
+	template.LastModified = GetCurrentTime()
 
 	// Marshal the updated Template back to a map
 	updatedTemplate, err := dynamodbattribute.MarshalMap(template)
@@ -153,7 +159,13 @@ func UpdateSectionInReport(
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInReport(report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
+		if err != nil {
+			return err
+		}
 	}
+
+	// Update last modified
+	report.LastModified = GetCurrentTime()
 
 	av, err := dynamodbattribute.MarshalMap(report)
 	if err != nil {
@@ -210,7 +222,13 @@ func UpdateSectionInTemplate(
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInTemplate(template, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
+		if err != nil {
+			return err
+		}
 	}
+
+	// Update last modified
+	template.LastModified = GetCurrentTime()
 
 	av, err := dynamodbattribute.MarshalMap(template)
 	if err != nil {
@@ -271,6 +289,9 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 
 	// Set output generated after all sections generated successfully
 	section.OutputGenerated = true
+
+	// Update last modified
+	report.LastModified = GetCurrentTime()
 
 	// Update the report in DynamoDB
 	updatedReport, err := dynamodbattribute.MarshalMap(report)

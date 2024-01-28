@@ -58,13 +58,17 @@ type Report struct {
 	Parts         []ReportPart
 	OwnedBy       User
 	SharedWithIDs []string
+	Created       int64
+	LastModified  int64
 }
 
 type ReportMetadata struct {
-	ReportID   string
-	ReportType string
-	Title      string
-	City       string
-	OwnedBy    User
-	SharedWith []User
+	ReportID     string
+	ReportType   string
+	Title        string
+	City         string
+	OwnedBy      User
+	SharedWith   []User
+	Created      int64
+	LastModified int64
 }

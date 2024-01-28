@@ -53,6 +53,9 @@ func AddPartToItem(
 			return fmt.Errorf("error inserting report part: %v", err)
 		}
 
+		// Update last modified
+		report.LastModified = GetCurrentTime()
+
 		av, err := dynamodbattribute.MarshalMap(report)
 		if err != nil {
 			return err
@@ -95,6 +98,9 @@ func AddPartToItem(
 		if err != nil {
 			return fmt.Errorf("error inserting report part: %v", err)
 		}
+
+		// Update last modified
+		template.LastModified = GetCurrentTime()
 
 		av, err := dynamodbattribute.MarshalMap(template)
 		if err != nil {
@@ -153,6 +159,9 @@ func UpdatePartInItem(
 			return fmt.Errorf("error moving report part: %v", err)
 		}
 
+		// Update last modified
+		report.LastModified = GetCurrentTime()
+
 		av, err := dynamodbattribute.MarshalMap(report)
 		if err != nil {
 			return err
@@ -191,6 +200,9 @@ func UpdatePartInItem(
 		if err != nil {
 			return fmt.Errorf("error moving report part: %v", err)
 		}
+
+		// Update last modified
+		template.LastModified = GetCurrentTime()
 
 		av, err := dynamodbattribute.MarshalMap(template)
 		if err != nil {

@@ -114,6 +114,8 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 		constants.TitleField,
 		constants.OwnerUserIDField,
 		constants.SharedWithIDsField,
+		constants.CreatedField,
+		constants.LastModifiedField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")

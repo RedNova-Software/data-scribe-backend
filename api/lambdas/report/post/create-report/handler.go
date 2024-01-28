@@ -69,6 +69,9 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			UserID:       userID,
 			UserNickName: userNickName,
 		},
+		SharedWithIDs: make([]string, 0),
+		Created:       util.GetCurrentTime(),
+		LastModified:  util.GetCurrentTime(),
 	}
 
 	err = util.PutNewReport(report)
