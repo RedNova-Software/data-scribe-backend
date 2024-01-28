@@ -318,6 +318,8 @@ export class LambdasStack extends cdk.Stack {
         TEMPLATE_TABLE: props.templateTable.tableName,
       },
     });
+    props.reportTable.grantReadWriteData(this.shareItemLambda);
+    props.templateTable.grantReadWriteData(this.shareItemLambda);
     props.userPool.grant(this.shareItemLambda, "cognito-idp:ListUsers");
 
     // --------------------------------------------------------- //
