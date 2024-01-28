@@ -95,7 +95,7 @@ func GetTemplate(templateID string, userID string) (*models.Template, error) {
 	return template, nil
 }
 
-func GetAllTemplates(userID string) ([]*models.Template, error) {
+func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 	tableName := os.Getenv(constants.TemplateTable)
 
 	// Create a new DynamoDB session
@@ -113,13 +113,13 @@ func GetAllTemplates(userID string) ([]*models.Template, error) {
 		constants.TemplateIDField,
 		constants.TitleField,
 		constants.OwnerUserIDField,
-		constants.SharedWithField,
+		constants.SharedWithIDsField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
 
 	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnerUserIDField + " = :userID"
+	filterExpression := constants.OwnerUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -137,24 +137,33 @@ func GetAllTemplates(userID string) ([]*models.Template, error) {
 		return nil, fmt.Errorf("error querying DynamoDB table: %v", err)
 	}
 
-	templates := []*models.Template{}
+	templates := []*models.TemplateMetadata{}
 
 	for _, item := range result.Items {
+		var templateMetadata *models.TemplateMetadata
+		err = dynamodbattribute.UnmarshalMap(item, &templateMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
+		}
+
+		// Needed to extract the SharedWithIDs field
 		var template *models.Template
 		err = dynamodbattribute.UnmarshalMap(item, &template)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
 		}
 
-		ensureNonNullTemplateFields(template)
+		createTemplateSharedWith(templateMetadata, template.SharedWithIDs)
 
-		templates = append(templates, template)
+		ensureNonNullTemplateMetadataFields(templateMetadata)
+
+		templates = append(templates, templateMetadata)
 	}
 
 	return templates, nil
 }
 
-func SetTemplateShared(templateID string, users []models.User, userID string) error {
+func SetTemplateShared(templateID string, userIDs []string, userID string) error {
 	tableName := os.Getenv(constants.TemplateTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -172,7 +181,7 @@ func SetTemplateShared(templateID string, users []models.User, userID string) er
 		return fmt.Errorf("report not found: %v", err)
 	}
 
-	template.SharedWith = users
+	template.SharedWithIDs = userIDs
 
 	av, err := dynamodbattribute.MarshalMap(template)
 	if err != nil {
@@ -198,8 +207,8 @@ func ensureNonNullTemplateFields(template *models.Template) {
 		template.Parts = []models.TemplatePart{}
 	}
 
-	if template.SharedWith == nil {
-		template.SharedWith = []models.User{}
+	if template.SharedWithIDs == nil {
+		template.SharedWithIDs = []string{}
 	}
 
 	// Iterate over each part
@@ -228,6 +237,40 @@ func ensureNonNullTemplateFields(template *models.Template) {
 	}
 }
 
+func ensureNonNullTemplateMetadataFields(template *models.TemplateMetadata) {
+
+	if template.SharedWith == nil {
+		template.SharedWith = []models.User{}
+	}
+}
+
+func createTemplateSharedWith(template *models.TemplateMetadata, sharedWithIDs []string) {
+	// Create a slice to hold User structs
+	var sharedWithUsers []models.User
+
+	// Iterate through each UserID in the SharedWith field of the report
+	for _, userID := range sharedWithIDs {
+		// Call the getUserName function to get the UserNickName
+		userNickName, err := GetUserNickname(userID)
+
+		if err != nil {
+			userNickName = "*Error Fetching Nickname*"
+		}
+
+		// Create a User struct for each UserID
+		user := models.User{
+			UserID:       userID,
+			UserNickName: userNickName,
+		}
+
+		// Append the User struct to the slice
+		sharedWithUsers = append(sharedWithUsers, user)
+	}
+
+	// Update the SharedWith field of the report with the slice of User structs
+	template.SharedWith = sharedWithUsers
+}
+
 // isUserAuthorizedForReport checks if a given userID is the owner of the template or is in the shared users list
 func isUserAuthorizedForTemplate(template *models.Template, userID string) bool {
 	// Check if the user is the owner
@@ -236,8 +279,8 @@ func isUserAuthorizedForTemplate(template *models.Template, userID string) bool 
 	}
 
 	// Check if the user is in the shared list
-	for _, user := range template.SharedWith {
-		if user.UserID == userID {
+	for _, id := range template.SharedWithIDs {
+		if id == userID {
 			return true
 		}
 	}

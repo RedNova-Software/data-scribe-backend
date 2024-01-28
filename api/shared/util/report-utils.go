@@ -94,7 +94,7 @@ func GetReport(reportID string, userID string) (*models.Report, error) {
 	return report, nil
 }
 
-func GetAllReports(userID string) ([]*models.Report, error) {
+func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 	tableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -109,13 +109,13 @@ func GetAllReports(userID string) ([]*models.Report, error) {
 		constants.TitleField,
 		constants.CityField,
 		constants.OwnerUserIDField,
-		constants.SharedWithField,
+		constants.SharedWithIDsField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
 
 	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnerUserIDField + " = :userID"
+	filterExpression := constants.OwnerUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -133,24 +133,34 @@ func GetAllReports(userID string) ([]*models.Report, error) {
 		return nil, fmt.Errorf("error querying DynamoDB table: %v", err)
 	}
 
-	reports := []*models.Report{}
+	reports := []*models.ReportMetadata{}
 
 	for _, item := range result.Items {
-		var report *models.Report
+		var reportMetadata *models.ReportMetadata
+
+		err = dynamodbattribute.UnmarshalMap(item, &reportMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
+		}
+
+		// Needed to extract the SharedWithIDs field
+		var report *models.Template
 		err = dynamodbattribute.UnmarshalMap(item, &report)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
 		}
 
-		ensureNonNullReportFields(report)
+		createReportSharedWith(reportMetadata, report.SharedWithIDs)
 
-		reports = append(reports, report)
+		ensureNonNullReportMetadataFields(reportMetadata)
+
+		reports = append(reports, reportMetadata)
 	}
 
 	return reports, nil
 }
 
-func SetReportShared(reportID string, users []models.User, userID string) error {
+func SetReportShared(reportID string, userIDs []string, userID string) error {
 	tableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -168,7 +178,7 @@ func SetReportShared(reportID string, users []models.User, userID string) error 
 		return fmt.Errorf("report not found: %v", err)
 	}
 
-	report.SharedWith = users
+	report.SharedWithIDs = userIDs
 
 	av, err := dynamodbattribute.MarshalMap(report)
 	if err != nil {
@@ -194,8 +204,8 @@ func ensureNonNullReportFields(report *models.Report) {
 		report.Parts = []models.ReportPart{}
 	}
 
-	if report.SharedWith == nil {
-		report.SharedWith = []models.User{}
+	if report.SharedWithIDs == nil {
+		report.SharedWithIDs = []string{}
 	}
 
 	// Iterate over each part
@@ -224,6 +234,39 @@ func ensureNonNullReportFields(report *models.Report) {
 	}
 }
 
+func ensureNonNullReportMetadataFields(report *models.ReportMetadata) {
+	if report.SharedWith == nil {
+		report.SharedWith = []models.User{}
+	}
+}
+
+func createReportSharedWith(report *models.ReportMetadata, sharedWithIDs []string) {
+	// Create a slice to hold User structs
+	var sharedWithUsers []models.User
+
+	// Iterate through each UserID in the SharedWith field of the report
+	for _, userID := range sharedWithIDs {
+		// Call the getUserName function to get the UserNickName
+		userNickName, err := GetUserNickname(userID)
+
+		if err != nil {
+			userNickName = "*Error Fetching Nickname*"
+		}
+
+		// Create a User struct for each UserID
+		user := models.User{
+			UserID:       userID,
+			UserNickName: userNickName,
+		}
+
+		// Append the User struct to the slice
+		sharedWithUsers = append(sharedWithUsers, user)
+	}
+
+	// Update the SharedWith field of the report with the slice of User structs
+	report.SharedWith = sharedWithUsers
+}
+
 // isUserAuthorizedForReport checks if a given userID is the owner of the report or is in the shared users list
 func isUserAuthorizedForReport(report *models.Report, userID string) bool {
 	// Check if the user is the owner
@@ -232,8 +275,8 @@ func isUserAuthorizedForReport(report *models.Report, userID string) bool {
 	}
 
 	// Check if the user is in the shared list
-	for _, user := range report.SharedWith {
-		if user.UserID == userID {
+	for _, id := range report.SharedWithIDs {
+		if id == userID {
 			return true
 		}
 	}

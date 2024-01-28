@@ -2,7 +2,6 @@ package main
 
 import (
 	"api/shared/constants"
-	"api/shared/models"
 	"api/shared/util"
 	"context"
 	"encoding/json"
@@ -15,7 +14,7 @@ import (
 type ShareItemRequest struct {
 	ItemType constants.ItemType `json:"itemType"`
 	ItemID   string             `json:"itemID"`
-	Users    []models.User      `json:"sharedUsers"`
+	UserIDs  []string           `json:"sharedUserIDs"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -38,16 +37,16 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.Users == nil {
+	if req.ItemType == "" || req.ItemID == "" || req.UserIDs == nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType, itemID, and sharedUsers are required.",
+			Body:       "Bad Request: itemType, itemID, and sharedUserIDs are required.",
 		}, nil
 	}
 
 	if req.ItemType == constants.Report {
-		err = util.SetReportShared(req.ItemID, req.Users, userID)
+		err = util.SetReportShared(req.ItemID, req.UserIDs, userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -57,7 +56,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 	} else if req.ItemType == constants.Template {
-		err = util.SetTemplateShared(req.ItemID, req.Users, userID)
+		err = util.SetTemplateShared(req.ItemID, req.UserIDs, userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -77,7 +76,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Title updated successfully",
+		Body:       "Item Shared Successfully",
 	}, nil
 }
 

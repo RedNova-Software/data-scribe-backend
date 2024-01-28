@@ -51,11 +51,20 @@ type ModelOutput struct {
 }
 
 type Report struct {
+	ReportID      string
+	ReportType    string
+	Title         string
+	City          string
+	Parts         []ReportPart
+	OwnedBy       User
+	SharedWithIDs []string
+}
+
+type ReportMetadata struct {
 	ReportID   string
 	ReportType string
 	Title      string
 	City       string
-	Parts      []ReportPart
 	OwnedBy    User
 	SharedWith []User
 }
