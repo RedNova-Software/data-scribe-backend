@@ -94,7 +94,7 @@ func GetReport(reportID string, userID string) (*models.Report, error) {
 	return report, nil
 }
 
-func GetAllReports(userID string) ([]models.Report, error) {
+func GetAllReports(userID string) ([]*models.Report, error) {
 	tableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -109,6 +109,7 @@ func GetAllReports(userID string) ([]models.Report, error) {
 		constants.TitleField,
 		constants.CityField,
 		constants.OwnerUserIDField,
+		constants.SharedWithField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
@@ -132,14 +133,16 @@ func GetAllReports(userID string) ([]models.Report, error) {
 		return nil, fmt.Errorf("error querying DynamoDB table: %v", err)
 	}
 
-	reports := []models.Report{}
+	reports := []*models.Report{}
 
 	for _, item := range result.Items {
-		var report models.Report
+		var report *models.Report
 		err = dynamodbattribute.UnmarshalMap(item, &report)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
 		}
+
+		ensureNonNullReportFields(report)
 
 		reports = append(reports, report)
 	}
@@ -189,6 +192,10 @@ func ensureNonNullReportFields(report *models.Report) {
 	// Check if Parts is nil, if so, initialize it as an empty slice
 	if report.Parts == nil {
 		report.Parts = []models.ReportPart{}
+	}
+
+	if report.SharedWith == nil {
+		report.SharedWith = []models.User{}
 	}
 
 	// Iterate over each part

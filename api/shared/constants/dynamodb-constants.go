@@ -28,4 +28,5 @@ const (
 
 const (
 	OwnerUserIDField string = "OwnedBy.UserID"
+	SharedWithField  string = "SharedWith"
 )

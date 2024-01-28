@@ -95,7 +95,7 @@ func GetTemplate(templateID string, userID string) (*models.Template, error) {
 	return template, nil
 }
 
-func GetAllTemplates(userID string) ([]models.Template, error) {
+func GetAllTemplates(userID string) ([]*models.Template, error) {
 	tableName := os.Getenv(constants.TemplateTable)
 
 	// Create a new DynamoDB session
@@ -113,6 +113,7 @@ func GetAllTemplates(userID string) ([]models.Template, error) {
 		constants.TemplateIDField,
 		constants.TitleField,
 		constants.OwnerUserIDField,
+		constants.SharedWithField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
@@ -136,14 +137,16 @@ func GetAllTemplates(userID string) ([]models.Template, error) {
 		return nil, fmt.Errorf("error querying DynamoDB table: %v", err)
 	}
 
-	templates := []models.Template{}
+	templates := []*models.Template{}
 
 	for _, item := range result.Items {
-		var template models.Template
+		var template *models.Template
 		err = dynamodbattribute.UnmarshalMap(item, &template)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshalling DynamoDB item: %v", err)
 		}
+
+		ensureNonNullTemplateFields(template)
 
 		templates = append(templates, template)
 	}
@@ -189,15 +192,19 @@ func SetTemplateShared(templateID string, users []models.User, userID string) er
 	return nil
 }
 
-func ensureNonNullTemplateFields(report *models.Template) {
+func ensureNonNullTemplateFields(template *models.Template) {
 	// Check if Parts is nil, if so, initialize it as an empty slice
-	if report.Parts == nil {
-		report.Parts = []models.TemplatePart{}
+	if template.Parts == nil {
+		template.Parts = []models.TemplatePart{}
+	}
+
+	if template.SharedWith == nil {
+		template.SharedWith = []models.User{}
 	}
 
 	// Iterate over each part
-	for i := range report.Parts {
-		part := &report.Parts[i]
+	for i := range template.Parts {
+		part := &template.Parts[i]
 
 		// Check if Sections is nil, if so, initialize it as an empty slice
 		if part.Sections == nil {
