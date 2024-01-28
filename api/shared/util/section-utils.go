@@ -443,7 +443,7 @@ func insertSectionInReport(report *models.Report, partIndex int, sectionIndex in
 	}
 
 	// Special case handling for inserting at the beginning
-	if sectionIndex == 0 {
+	if sectionIndex == -1 {
 		part.Sections = append([]models.ReportSection{section}, part.Sections...)
 		return nil
 	}
@@ -518,7 +518,7 @@ func insertSectionInTemplate(template *models.Template, partIndex int, sectionIn
 	}
 
 	// Special case handling for inserting at the beginning
-	if sectionIndex == 0 {
+	if sectionIndex == -1 {
 		part.Sections = append([]models.TemplateSection{section}, part.Sections...)
 		return nil
 	}
