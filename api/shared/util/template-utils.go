@@ -183,6 +183,12 @@ func SetTemplateShared(templateID string, userIDs []string, userID string) error
 		return fmt.Errorf("report not found: %v", err)
 	}
 
+	// Eventually you could refactor this into checking dynamodb first so we don't incur costs for loading data, but this should never be called
+	// so it's not worth it right now.
+	if !isUserOwnerOfTemplate(template, userID) {
+		return fmt.Errorf("user is not the owner of this template. cannot share with others")
+	}
+
 	template.SharedWithIDs = userIDs
 
 	av, err := dynamodbattribute.MarshalMap(template)
@@ -298,4 +304,9 @@ func isUserAuthorizedForTemplate(template *models.Template, userID string) bool 
 	}
 
 	return false
+}
+
+func isUserOwnerOfTemplate(template *models.Template, userID string) bool {
+	// Check if the user is the owner
+	return template.OwnedBy.UserID == userID
 }

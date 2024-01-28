@@ -180,6 +180,12 @@ func SetReportShared(reportID string, userIDs []string, userID string) error {
 		return fmt.Errorf("report not found: %v", err)
 	}
 
+	// Eventually you could refactor this into checking dynamodb first so we don't incur costs for loading data, but this should never be called
+	// so it's not worth it right now.
+	if !isUserOwnerOfReport(report, userID) {
+		return fmt.Errorf("user is not the owner of this report. cannot share with others")
+	}
+
 	report.SharedWithIDs = userIDs
 
 	av, err := dynamodbattribute.MarshalMap(report)
@@ -294,4 +300,9 @@ func isUserAuthorizedForReport(report *models.Report, userID string) bool {
 	}
 
 	return false
+}
+
+func isUserOwnerOfReport(report *models.Report, userID string) bool {
+	// Check if the user is the owner
+	return report.OwnedBy.UserID == userID
 }
