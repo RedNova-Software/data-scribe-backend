@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/google/uuid"
 )
 
 func PutNewTemplate(template models.Template) error {
@@ -204,6 +205,119 @@ func SetTemplateShared(templateID string, userIDs []string, userID string) error
 	}
 
 	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, userID string) error {
+	reportTableName := os.Getenv(constants.ReportTable)
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	template, err := GetTemplate(templateID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting template from DynamoDB: %v", err)
+	}
+
+	if template == nil {
+		return fmt.Errorf("template not found: %v", err)
+	}
+
+	if !isUserAuthorizedForTemplate(template, userID) {
+		return fmt.Errorf("user does not have access to this template. cannot convert to report")
+	}
+
+	ownerNickName, err := GetUserNickname(userID)
+
+	if err != nil {
+		ownerNickName = "*Error Fetching Nickname*"
+	}
+
+	// Create report metadata
+	newReport := &models.Report{
+		ReportID:   uuid.New().String(),
+		Title:      reportTitle,
+		City:       reportCity,
+		ReportType: reportCity,
+		OwnedBy: models.User{
+			UserID:       userID,
+			UserNickName: ownerNickName,
+		},
+		SharedWithIDs: make([]string, 0),
+		Created:       GetCurrentTime(),
+		LastModified:  GetCurrentTime(),
+		// Create empty parts for filling
+		Parts: make([]models.ReportPart, 0),
+	}
+
+	var reportParts []models.ReportPart
+
+	// Extract template parts into report
+	for i := range template.Parts {
+		templatePart := &template.Parts[i]
+
+		reportPart := &models.ReportPart{
+			Title:    templatePart.Title,
+			Sections: make([]models.ReportSection, 0),
+		}
+
+		// Iterate through each section in templatePart
+		for _, templateSection := range templatePart.Sections {
+			reportSection := models.ReportSection{
+				Title:           templateSection.Title,
+				OutputGenerated: false,
+				Questions:       make([]models.ReportQuestion, len(templateSection.Questions)),
+				TextOutputs:     make([]models.ReportTextOutput, len(templateSection.TextOutputs)),
+			}
+
+			// Convert TemplateQuestions to ReportQuestions
+			for j, question := range templateSection.Questions {
+				reportSection.Questions[j] = models.ReportQuestion{
+					Label:    question.Label,
+					Question: question.Question,
+					Answer:   "", // Initialize with empty answer
+				}
+			}
+
+			// Convert TemplateTextOutputs to ReportTextOutputs
+			for k, textOutput := range templateSection.TextOutputs {
+				reportSection.TextOutputs[k] = models.ReportTextOutput{
+					Title:  textOutput.Title,
+					Type:   textOutput.Type,
+					Input:  textOutput.Input,
+					Result: "", // Initialize with empty result
+				}
+			}
+
+			// Append the converted section to reportPart
+			reportPart.Sections = append(reportPart.Sections, reportSection)
+		}
+
+		// Append the converted part to reportParts
+		reportParts = append(reportParts, *reportPart)
+	}
+
+	newReport.Parts = reportParts
+
+	reportAV, err := dynamodbattribute.MarshalMap(newReport)
+	if err != nil {
+		return err
+	}
+
+	input := &dynamodb.PutItemInput{
+		Item:      reportAV,
+		TableName: aws.String(reportTableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(input)
+
 	if err != nil {
 		return err
 	}

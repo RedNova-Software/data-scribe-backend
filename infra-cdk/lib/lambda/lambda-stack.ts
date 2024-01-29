@@ -32,6 +32,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly updateSectionLambda: lambda.IFunction;
   public readonly updateItemTitleLambda: lambda.IFunction;
   public readonly shareItemLambda: lambda.IFunction;
+  public readonly convertItemLambda: lambda.IFunction;
 
   // User Lambdas
   public readonly getUserIDLambda: lambda.IFunction;
@@ -321,6 +322,23 @@ export class LambdasStack extends cdk.Stack {
     props.reportTable.grantReadWriteData(this.shareItemLambda);
     props.templateTable.grantReadWriteData(this.shareItemLambda);
     props.userPool.grant(this.shareItemLambda, "cognito-idp:ListUsers");
+
+    this.convertItemLambda = new lambda.Function(this, "ConvertItemLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/convert-item")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+      environment: {
+        USER_POOL_ID: props.userPool.userPoolId,
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+    });
+    props.reportTable.grantReadWriteData(this.convertItemLambda);
+    props.templateTable.grantReadWriteData(this.convertItemLambda);
+    props.userPool.grant(this.convertItemLambda, "cognito-idp:ListUsers");
 
     // --------------------------------------------------------- //
 
