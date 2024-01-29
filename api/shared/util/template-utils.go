@@ -245,7 +245,7 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 		ReportID:   uuid.New().String(),
 		Title:      reportTitle,
 		City:       reportCity,
-		ReportType: reportCity,
+		ReportType: reportType,
 		OwnedBy: models.User{
 			UserID:       userID,
 			UserNickName: ownerNickName,
