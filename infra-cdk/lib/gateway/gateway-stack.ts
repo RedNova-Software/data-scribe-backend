@@ -27,6 +27,7 @@ interface GatewayStackProps extends cdk.StackProps {
   updateSectionLambda: lambda.IFunction;
   updateItemTitleLambda: lambda.IFunction;
   shareItemLambda: lambda.IFunction;
+  convertItemLambda: lambda.IFunction;
 
   // User Lambdas
   getUserIDLambda: lambda.IFunction;
@@ -240,6 +241,16 @@ export class GatewayStack extends cdk.Stack {
     shareItemEndpoint.addMethod(
       "PUT",
       new apigateway.LambdaIntegration(props.shareItemLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const convertItemEndpoint = sharedResource.addResource("convert");
+    convertItemEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(props.convertItemLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
