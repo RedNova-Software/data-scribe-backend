@@ -5,7 +5,7 @@
     "data-scribe-backend": "bin/data-scribe-backend.js"
   },
   "scripts": {
-    "deploy": "npm run build && npm run cdk deploy --all",
+    "deploy": "npm run build && npm run cdk -- deploy --all",
     "build": "ts-node ./lib/helpers/build-go.ts",
     "hotswap": "npm run build && npm run cdk deploy --hotswap LambdaStack",
     "lint-fix": "eslint . --ext ts --fix",
