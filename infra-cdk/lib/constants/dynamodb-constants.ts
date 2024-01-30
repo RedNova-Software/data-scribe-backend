@@ -3,7 +3,9 @@ export enum DynamoDBTable {
   TemplateTable = "TemplateTable",
 }
 
-export enum ReportTable {
+export enum Tables {
   ReportID = "ReportID",
   TemplateID = "TemplateID",
+  // Attribute that stores a timestamp for when an item should actually be deleted
+  DeleteAt = "DeleteAt",
 }
