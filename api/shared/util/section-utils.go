@@ -6,7 +6,9 @@ import (
 	"api/shared/models"
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -283,6 +285,7 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 
 		err = GenerateSectionGeneratorText(generator, section, answers)
 		if err != nil {
+			log.Panicf("error creating generator outputs: %v", err)
 			return fmt.Errorf("error creating generator outputs: %v", err)
 		}
 	}
@@ -337,12 +340,20 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 		}
 	}
 
+	// Used to make the concurrent channel
+	numberOfGeneratorSections := 0
+	for _, textOutput := range section.TextOutputs {
+		if textOutput.Type == models.Generator {
+			numberOfGeneratorSections++
+		}
+	}
+
 	// Splice answers into prompts
 	for _, answer := range answers {
 		// Find the matching question
 		question, err := GetReportQuestion(section.Questions, answer.QuestionIndex)
 		if err != nil {
-			continue // or handle the error as you see fit
+			continue
 		}
 
 		// Update question answer
@@ -356,19 +367,46 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 		}
 	}
 
-	// Generate the outputs
+	type generateResult struct {
+		Index  int
+		Result string
+		Err    error
+	}
+
+	// Create a channel for communication
+	resultsChan := make(chan generateResult, numberOfGeneratorSections)
+
+	log.Print("Starting GPT Generation\n")
+
 	for i, textOutput := range section.TextOutputs {
 		if textOutput.Type == models.Generator {
-			// Assuming GenerateStaticText modifies textOutput in place
-			result, err := generator.GeneratePromptResponse(section.TextOutputs[i].Input)
-
-			if err != nil {
-				return err
-			}
-
-			section.TextOutputs[i].Result = result
+			go func(index int, input string) {
+				log.Print("Generating TextOutput: " + strconv.Itoa(index) + "\n")
+				result, err := generator.GeneratePromptResponse(input)
+				// Send a Result struct to the channel
+				resultsChan <- generateResult{Index: index, Result: result, Err: err}
+			}(i, textOutput.Input)
 		}
 	}
+
+	// Process the results
+	for i := 0; i < numberOfGeneratorSections; i++ {
+		result := <-resultsChan
+		log.Print("Processing Result: " + strconv.Itoa(result.Index) + "\n")
+		log.Print("Result: " + result.Result + "\n")
+
+		if result.Err != nil {
+			log.Print("Err: " + string(result.Err.Error()) + "\n")
+			section.TextOutputs[result.Index].Result = "err generating: " + result.Err.Error()
+		} else {
+			section.TextOutputs[result.Index].Result = result.Result
+		}
+	}
+
+	// Remember to close the channel
+	close(resultsChan)
+
+	log.Print("Generation Finished")
 
 	// Restore original inputs
 	originalInputIndex := 0

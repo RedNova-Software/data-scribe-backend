@@ -11,7 +11,7 @@ import (
 type OpenAiGenerator struct{}
 
 func (g OpenAiGenerator) GeneratePromptResponse(prompt string) (string, error) {
-	key := os.Getenv(constants.OpenAIKey) // Assuming OpenAIKey is the environment variable name
+	key := os.Getenv(constants.OpenAIKey)
 
 	client := openai.NewClient(key)
 	resp, err := client.CreateChatCompletion(

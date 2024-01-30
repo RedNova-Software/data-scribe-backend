@@ -134,8 +134,8 @@ export class LambdasStack extends cdk.Stack {
           REPORT_TABLE: props.reportTable.tableName,
           OPENAI_API_KEY: openAIKey,
         },
-        timeout: cdk.Duration.minutes(5),
-        memorySize: 1024,
+        timeout: cdk.Duration.minutes(2.5),
+        memorySize: 2048,
       }
     );
     props.reportTable.grantReadWriteData(this.generateSectionLambda);
