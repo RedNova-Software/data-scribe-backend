@@ -5,7 +5,9 @@ import (
 	"api/shared/models"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -43,6 +45,17 @@ func PutNewReport(report models.Report) error {
 }
 
 func GetReport(reportID string, userID string) (*models.Report, error) {
+
+	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting authentication status for item: %v", err)
+	}
+
+	if !isAuthorized {
+		return nil, fmt.Errorf("user is not authorized for item")
+	}
+
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	const keyName = constants.ReportIDField
@@ -80,10 +93,6 @@ func GetReport(reportID string, userID string) (*models.Report, error) {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
 	}
 
-	if !isUserAuthorizedForReport(report, userID) {
-		return nil, fmt.Errorf("user does not have access to this report")
-	}
-
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
 	// When we create an empty report, the parts will be null in dynamodb.
@@ -109,7 +118,7 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 		constants.ReportTypeField,
 		constants.TitleField,
 		constants.CityField,
-		constants.OwnerUserIDField,
+		constants.OwnedByUserIDField,
 		constants.SharedWithIDsField,
 		constants.CreatedField,
 		constants.LastModifiedField,
@@ -118,7 +127,7 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 	projectionExpression := strings.Join(fields, ", ")
 
 	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnerUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
+	filterExpression := constants.OwnedByUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -166,6 +175,17 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 }
 
 func SetReportShared(reportID string, userIDs []string, userID string) error {
+
+	isOwner, err := isUserOwnerOfItem(constants.Report, reportID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error checking if user is owner of report: %v", err)
+	}
+
+	if !isOwner {
+		return fmt.Errorf("user is not the owner of this report. cannot share with others")
+	}
+
 	tableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -185,9 +205,6 @@ func SetReportShared(reportID string, userIDs []string, userID string) error {
 
 	// Eventually you could refactor this into checking dynamodb first so we don't incur costs for loading data, but this should never be called
 	// so it's not worth it right now.
-	if !isUserOwnerOfReport(report, userID) {
-		return fmt.Errorf("user is not the owner of this report. cannot share with others")
-	}
 
 	report.SharedWithIDs = userIDs
 
@@ -210,6 +227,16 @@ func SetReportShared(reportID string, userIDs []string, userID string) error {
 }
 
 func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
+	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting authentication status for item: %v", err)
+	}
+
+	if !isAuthorized {
+		return fmt.Errorf("user is not authorized for item")
+	}
+
 	templateTableName := os.Getenv(constants.TemplateTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -225,10 +252,6 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 
 	if report == nil {
 		return fmt.Errorf("report not found: %v", err)
-	}
-
-	if !isUserAuthorizedForReport(report, userID) {
-		return fmt.Errorf("user does not have access to this report. cannot convert to template")
 	}
 
 	ownerNickName, err := GetUserNickname(userID)
@@ -317,6 +340,61 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 	return nil
 }
 
+func SetReportCSV(reportID, userID string) (string, error) {
+	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
+
+	if err != nil {
+		return "", fmt.Errorf("error getting authentication status for report: %v", err)
+	}
+
+	if !isAuthorized {
+		return "", fmt.Errorf("user is not authorized for report")
+	}
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return "", fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	fileS3Key := uuid.New().String() + ".csv"
+	preSignedURL, err := GeneratePresignedURL(os.Getenv(constants.S3BucketName), fileS3Key, "text/csv", 3*time.Minute)
+
+	if err != nil {
+		return "", fmt.Errorf("error generating presigned url: %v", err)
+	}
+
+	tableName := os.Getenv(constants.ReportTable)
+	reportKey := constants.ReportIDField
+
+	currentUnixTime := GetCurrentTime()
+
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			reportKey: {
+				S: aws.String(reportID),
+			},
+		},
+		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedField + " = :lm"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":s3k": {
+				S: aws.String(fileS3Key),
+			},
+			":lm": {
+				N: aws.String(strconv.FormatInt(currentUnixTime, 10)),
+			},
+		},
+	}
+
+	// Update the report in DynamoDB
+	_, err = dynamoDBClient.UpdateItem(input)
+	if err != nil {
+		return "", fmt.Errorf("failed to update item: %v", err)
+	}
+
+	return preSignedURL, nil
+}
+
 func ensureNonNullReportFields(report *models.Report) {
 	// Check if Parts is nil, if so, initialize it as an empty slice
 	if report.Parts == nil {
@@ -394,26 +472,4 @@ func setReportMetadataOwnerUserName(reportMetadata *models.ReportMetadata) {
 	}
 
 	reportMetadata.OwnedBy.UserNickName = userNickName
-}
-
-// isUserAuthorizedForReport checks if a given userID is the owner of the report or is in the shared users list
-func isUserAuthorizedForReport(report *models.Report, userID string) bool {
-	// Check if the user is the owner
-	if report.OwnedBy.UserID == userID {
-		return true
-	}
-
-	// Check if the user is in the shared list
-	for _, id := range report.SharedWithIDs {
-		if id == userID {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isUserOwnerOfReport(report *models.Report, userID string) bool {
-	// Check if the user is the owner
-	return report.OwnedBy.UserID == userID
 }

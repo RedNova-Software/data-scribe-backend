@@ -27,11 +27,16 @@ const (
 )
 
 const (
-	OwnerUserIDField   string = "OwnedBy.UserID"
+	OwnedByField       string = "OwnedBy"
+	OwnedByUserIDField string = OwnedByField + "." + "UserID"
 	SharedWithIDsField string = "SharedWithIDs"
 )
 
 const (
 	CreatedField      string = "Created"
 	LastModifiedField string = "LastModified"
+)
+
+const (
+	CSVIDField string = "CSVID"
 )
