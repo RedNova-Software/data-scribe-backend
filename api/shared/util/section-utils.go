@@ -86,7 +86,7 @@ func AddSectionToTemplate(templateID string, partIndex int, sectionIndex int, ne
 	}
 
 	// Update last modified
-	template.LastModified = GetCurrentTime()
+	template.LastModifiedAt = GetCurrentTime()
 
 	// Marshal the updated Template back to a map
 	updatedTemplate, err := dynamodbattribute.MarshalMap(template)
@@ -175,7 +175,7 @@ func DeleteSectionFromItem(itemType constants.ItemType,
 		}
 
 		// Update last modified
-		template.LastModified = GetCurrentTime()
+		template.LastModifiedAt = GetCurrentTime()
 
 		av, err := dynamodbattribute.MarshalMap(template)
 		if err != nil {
@@ -322,7 +322,7 @@ func UpdateSectionInTemplate(
 	}
 
 	// Update last modified
-	template.LastModified = GetCurrentTime()
+	template.LastModifiedAt = GetCurrentTime()
 
 	av, err := dynamodbattribute.MarshalMap(template)
 	if err != nil {

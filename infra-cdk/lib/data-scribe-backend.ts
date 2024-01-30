@@ -41,6 +41,7 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   createReportLambda: lambdaFunctionsStack.createReportLambda,
   generateSectionLambda: lambdaFunctionsStack.generateSectionLambda,
   getAllReportTypesLambda: lambdaFunctionsStack.getAllReportTypesLambda,
+  uploadCSVLambda: lambdaFunctionsStack.uploadCSVLambda,
 
   // Template Lambdas
   getTemplateByIDLambda: lambdaFunctionsStack.getTemplateByIDLambda,
@@ -57,7 +58,7 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   updateItemTitleLambda: lambdaFunctionsStack.updateItemTitleLambda,
   shareItemLambda: lambdaFunctionsStack.shareItemLambda,
   convertItemLambda: lambdaFunctionsStack.convertItemLambda,
-  uploadCSVLambda: lambdaFunctionsStack.uploadCSVLambda,
+  deleteItemLambda: lambdaFunctionsStack.deleteItemLambda,
 
   // User Lambdas
   getUserIDLambda: lambdaFunctionsStack.getUserIDLambda,

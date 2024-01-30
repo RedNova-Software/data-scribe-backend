@@ -73,9 +73,9 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			UserID:       userID,
 			UserNickName: userNickName,
 		},
-		SharedWithIDs: make([]string, 0),
-		Created:       util.GetCurrentTime(),
-		LastModified:  util.GetCurrentTime(),
+		SharedWithIDs:  make([]string, 0),
+		CreatedAt:      util.GetCurrentTime(),
+		LastModifiedAt: util.GetCurrentTime(),
 	}
 
 	err = util.PutNewTemplate(template)

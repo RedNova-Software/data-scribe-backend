@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -137,6 +138,67 @@ func UpdateItemTitle(itemType constants.ItemType, itemID, newTitle string, userI
 			},
 			":lm": {
 				N: aws.String(strconv.FormatInt(currentUnixTime, 10)),
+			},
+		},
+	}
+
+	// Update the item in DynamoDB
+	_, err = dynamoDBClient.UpdateItem(input)
+	if err != nil {
+		return fmt.Errorf("failed to update item: %v", err)
+	}
+
+	return nil
+}
+
+func SetItemDeleted(itemType constants.ItemType, itemID, userID string) error {
+
+	isAuthorized, err := isUserOwnerOfItem(itemType, itemID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting authentication status for item: %v", err)
+	}
+
+	if !isAuthorized {
+		return fmt.Errorf("user is not authorized for item")
+	}
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	var tableName string
+	var itemKey string
+
+	if itemType == constants.Report {
+		tableName = os.Getenv(constants.ReportTable)
+		itemKey = constants.ReportIDField
+
+	} else if itemType == constants.Template {
+		tableName = os.Getenv(constants.TemplateTable)
+		itemKey = constants.TemplateIDField
+	} else {
+		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
+	}
+
+	// Set deletion time to 30 days from now
+	deletionTime := time.Now().Add(30 * 24 * time.Hour).Unix()
+
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			itemKey: {
+				S: aws.String(itemID),
+			},
+		},
+		UpdateExpression: aws.String("set " + constants.IsDeletedField + " :isDel, " + constants.DeleteAtField + " = :delAt"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":isDel": {
+				BOOL: aws.Bool(true),
+			},
+			":delAt": {
+				N: aws.String(strconv.FormatInt(deletionTime, 10)),
 			},
 		},
 	}

@@ -21,6 +21,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly createReportLambda: lambda.IFunction;
   public readonly generateSectionLambda: lambda.IFunction;
   public readonly getAllReportTypesLambda: lambda.IFunction;
+  public readonly uploadCSVLambda: lambda.IFunction;
 
   // Template Lambas
   public readonly getTemplateByIDLambda: lambda.IFunction;
@@ -37,7 +38,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly updateItemTitleLambda: lambda.IFunction;
   public readonly shareItemLambda: lambda.IFunction;
   public readonly convertItemLambda: lambda.IFunction;
-  public readonly uploadCSVLambda: lambda.IFunction;
+  public readonly deleteItemLambda: lambda.IFunction;
 
   // User Lambdas
   public readonly getUserIDLambda: lambda.IFunction;
@@ -387,6 +388,21 @@ export class LambdasStack extends cdk.Stack {
     });
     props.reportTable.grantReadWriteData(this.convertItemLambda);
     props.templateTable.grantReadWriteData(this.convertItemLambda);
+
+    this.deleteItemLambda = new lambda.Function(this, "DeleteItemLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/delete-item")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      environment: {
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+      memorySize: 1024,
+    });
+    props.reportTable.grantReadWriteData(this.deleteItemLambda);
+    props.templateTable.grantReadWriteData(this.deleteItemLambda);
 
     // --------------------------------------------------------- //
 

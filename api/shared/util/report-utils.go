@@ -216,9 +216,9 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 			UserID:       userID,
 			UserNickName: ownerNickName,
 		},
-		SharedWithIDs: make([]string, 0),
-		Created:       GetCurrentTime(),
-		LastModified:  GetCurrentTime(),
+		SharedWithIDs:  make([]string, 0),
+		CreatedAt:      GetCurrentTime(),
+		LastModifiedAt: GetCurrentTime(),
 		// Create empty parts for filling
 		Parts: make([]models.TemplatePart, 0),
 	}

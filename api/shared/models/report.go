@@ -60,6 +60,8 @@ type Report struct {
 	SharedWithIDs []string
 	Created       int64
 	LastModified  int64
+	IsDeleted     bool
+	DeleteAt      int64
 	CSVID         string
 }
 

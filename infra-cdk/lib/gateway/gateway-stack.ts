@@ -14,6 +14,7 @@ interface GatewayStackProps extends cdk.StackProps {
   createReportLambda: lambda.IFunction;
   generateSectionLambda: lambda.IFunction;
   getAllReportTypesLambda: lambda.IFunction;
+  uploadCSVLambda: lambda.IFunction;
 
   // Template Lambas
   getTemplateByIDLambda: lambda.IFunction;
@@ -30,7 +31,7 @@ interface GatewayStackProps extends cdk.StackProps {
   updateItemTitleLambda: lambda.IFunction;
   shareItemLambda: lambda.IFunction;
   convertItemLambda: lambda.IFunction;
-  uploadCSVLambda: lambda.IFunction;
+  deleteItemLambda: lambda.IFunction;
 
   // User Lambdas
   getUserIDLambda: lambda.IFunction;
@@ -300,6 +301,20 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const deleteItemEndpoint = sharedResource.addResource("delete");
+    deleteItemEndpoint.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(props.deleteItemLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.itemType": true,
+          "method.request.querystring.itemID": true,
+        },
       }
     );
 
