@@ -93,6 +93,10 @@ func GetReport(reportID string, userID string) (*models.Report, error) {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
 	}
 
+	if report.IsDeleted {
+		return nil, fmt.Errorf("report is deleted. cannot fetch")
+	}
+
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
 	// When we create an empty report, the parts will be null in dynamodb.

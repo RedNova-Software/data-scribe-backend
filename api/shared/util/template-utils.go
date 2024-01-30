@@ -91,6 +91,10 @@ func GetTemplate(templateID string, userID string) (*models.Template, error) {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into template: %v", err)
 	}
 
+	if template.IsDeleted {
+		return nil, fmt.Errorf("report is deleted. cannot fetch")
+	}
+
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
 	// When we create an empty report, the parts will be null in dynamodb.
