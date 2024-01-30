@@ -5,6 +5,7 @@ import (
 	"api/shared/models"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -333,6 +334,60 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func SetReportCSV(reportID, base64CSVData, userID string) error {
+	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting authentication status for report: %v", err)
+	}
+
+	if !isAuthorized {
+		return fmt.Errorf("user is not authorized for report")
+	}
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	tableName := os.Getenv(constants.ReportTable)
+	reportKey := constants.ReportIDField
+
+	s3Key, err := UploadBase64CSVtoS3(base64CSVData)
+
+	if err != nil {
+		return fmt.Errorf("error uploading csv to s3: %v", err)
+	}
+
+	currentUnixTime := GetCurrentTime()
+
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			reportKey: {
+				S: aws.String(reportID),
+			},
+		},
+		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedField + " = :lm"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":s3k": {
+				S: aws.String(s3Key),
+			},
+			":lm": {
+				N: aws.String(strconv.FormatInt(currentUnixTime, 10)),
+			},
+		},
+	}
+
+	// Update the report in DynamoDB
+	_, err = dynamoDBClient.UpdateItem(input)
+	if err != nil {
+		return fmt.Errorf("failed to update item: %v", err)
 	}
 
 	return nil

@@ -73,68 +73,6 @@ func UpdateItemTitle(itemType constants.ItemType, itemID, newTitle string, userI
 	return nil
 }
 
-func SetItemCSV(itemType constants.ItemType, itemID, base64CSVData, userID string) error {
-	isAuthorized, err := isUserAuthorizedForItem(itemType, itemID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error getting authentication status for item: %v", err)
-	}
-
-	if !isAuthorized {
-		return fmt.Errorf("user is not authorized for item")
-	}
-
-	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
-	if err != nil {
-		return fmt.Errorf("error getting dynamodb client: %v", err)
-	}
-
-	var tableName string
-	var itemKey string
-
-	if itemType == constants.Report {
-		tableName = os.Getenv(constants.ReportTable)
-	} else if itemType == constants.Template {
-		tableName = os.Getenv(constants.TemplateTable)
-	} else {
-		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
-	}
-
-	s3Key, err := UploadBase64CSVtoS3(base64CSVData)
-
-	if err != nil {
-		return fmt.Errorf("error uploading csv to s3: %v", err)
-	}
-
-	currentUnixTime := GetCurrentTime()
-
-	input := &dynamodb.UpdateItemInput{
-		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			itemKey: {
-				S: aws.String(itemID),
-			},
-		},
-		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedField + " = :lm"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":s3k": {
-				S: aws.String(s3Key),
-			},
-			":lm": {
-				N: aws.String(strconv.FormatInt(currentUnixTime, 10)),
-			},
-		},
-	}
-
-	// Update the item in DynamoDB
-	_, err = dynamoDBClient.UpdateItem(input)
-	if err != nil {
-		return fmt.Errorf("failed to update item: %v", err)
-	}
-
-	return nil
-}
-
 func isUserOwnerOfItem(itemType constants.ItemType, itemID, userID string) (bool, error) {
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {

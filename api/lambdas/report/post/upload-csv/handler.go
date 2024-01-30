@@ -12,9 +12,8 @@ import (
 )
 
 type UploadCsvRequest struct {
-	ItemType        constants.ItemType `json:"itemType"`
-	ItemID          string             `json:"itemID"`
-	CSVBase64String string             `json:"csvBase64String"`
+	ReportID        string `json:"reportID"`
+	CSVBase64String string `json:"csvBase64String"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -37,44 +36,27 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.CSVBase64String == "" {
+	if req.ReportID == "" || req.CSVBase64String == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType, itemID, and csvBase64String are required.",
+			Body:       "Bad Request: reportID, and csvBase64String are required.",
 		}, nil
 	}
 
-	if req.ItemType == constants.Report {
-		err = util.SetItemCSV(constants.Report, req.ItemID, req.CSVBase64String, userID)
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Headers:    constants.CorsHeaders,
-				Body:       "Internal Server Error: " + err.Error(),
-			}, nil
-		}
-	} else if req.ItemType == constants.Template {
-		err = util.SetItemCSV(constants.Template, req.ItemID, req.CSVBase64String, userID)
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Headers:    constants.CorsHeaders,
-				Body:       "Internal Server Error: " + err.Error(),
-			}, nil
-		}
-	} else {
+	err = util.SetReportCSV(req.ReportID, req.CSVBase64String, userID)
+	if err != nil {
 		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
+			StatusCode: http.StatusInternalServerError,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType must be 'report' or 'template' ",
+			Body:       "Internal Server Error: " + err.Error(),
 		}, nil
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Part added successfully to report with ID: " + req.ItemID,
+		Body:       "Part added successfully to report with ID: " + req.ReportID,
 	}, nil
 }
 

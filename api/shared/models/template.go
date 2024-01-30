@@ -30,7 +30,6 @@ type Template struct {
 	SharedWithIDs []string
 	Created       int64
 	LastModified  int64
-	CSVID         string
 }
 
 type TemplateMetadata struct {
