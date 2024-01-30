@@ -143,6 +143,22 @@ export class LambdasStack extends cdk.Stack {
       this.generateSectionLambda,
       "cognito-idp:AdminGetUser"
     );
+
+    this.uploadCSVLambda = new lambda.Function(this, "UploadCSVLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/upload-csv")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+      environment: {
+        REPORT_TABLE: props.reportTable.tableName,
+        S3_BUCKET_NAME: props.csvBucket.bucketName,
+      },
+    });
+    props.reportTable.grantReadWriteData(this.uploadCSVLambda);
+    props.templateTable.grantReadWriteData(this.uploadCSVLambda);
+    props.csvBucket.grantReadWrite(this.uploadCSVLambda);
     // --------------------------------------------------------- //
     // Template Lambdas
 
@@ -333,23 +349,6 @@ export class LambdasStack extends cdk.Stack {
     });
     props.reportTable.grantReadWriteData(this.convertItemLambda);
     props.templateTable.grantReadWriteData(this.convertItemLambda);
-
-    this.uploadCSVLambda = new lambda.Function(this, "UploadCSVLambda", {
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../bin/lambdas/upload-csv")
-      ),
-      handler: "main",
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-      memorySize: 1024,
-      environment: {
-        REPORT_TABLE: props.reportTable.tableName,
-        TEMPLATE_TABLE: props.templateTable.tableName,
-        S3_BUCKET_NAME: props.csvBucket.bucketName,
-      },
-    });
-    props.reportTable.grantReadWriteData(this.uploadCSVLambda);
-    props.templateTable.grantReadWriteData(this.uploadCSVLambda);
-    props.csvBucket.grantReadWrite(this.uploadCSVLambda);
 
     // --------------------------------------------------------- //
 

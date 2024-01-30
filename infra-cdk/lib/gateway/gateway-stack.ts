@@ -93,7 +93,7 @@ export class GatewayStack extends cdk.Stack {
     const sharedResource = gateway.root.addResource("shared");
     const sharedPartResource = sharedResource.addResource("parts");
     const sharedSectionResource = sharedPartResource.addResource("sections");
-    const csvResource = sharedResource.addResource("csv");
+    const csvResource = reportResource.addResource("csv");
 
     // Report Endpoints
 
@@ -150,6 +150,17 @@ export class GatewayStack extends cdk.Stack {
         authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
+
+    const uploadCSVEndpoint = csvResource.addResource("upload");
+    uploadCSVEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(props.uploadCSVLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
     // --------------------------------------------------------- //
     // Template Endpoints
 
@@ -253,16 +264,6 @@ export class GatewayStack extends cdk.Stack {
     convertItemEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.convertItemLambda),
-      {
-        authorizer,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      }
-    );
-
-    const uploadCSVEndpoint = csvResource.addResource("upload");
-    uploadCSVEndpoint.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(props.uploadCSVLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
