@@ -192,7 +192,7 @@ func SetItemDeleted(itemType constants.ItemType, itemID, userID string) error {
 				S: aws.String(itemID),
 			},
 		},
-		UpdateExpression: aws.String("set " + constants.IsDeletedField + " :isDel, " + constants.DeleteAtField + " = :delAt"),
+		UpdateExpression: aws.String("set " + constants.IsDeletedField + " = :isDel, " + constants.DeleteAtField + " = :delAt"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":isDel": {
 				BOOL: aws.Bool(true),
