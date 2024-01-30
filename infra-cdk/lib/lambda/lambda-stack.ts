@@ -31,6 +31,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly addPartLambda: lambda.IFunction;
   public readonly deletePartLambda: lambda.IFunction;
   public readonly addSectionLambda: lambda.IFunction;
+  public readonly deleteSectionLambda: lambda.IFunction;
   public readonly updatePartLambda: lambda.IFunction;
   public readonly updateSectionLambda: lambda.IFunction;
   public readonly updateItemTitleLambda: lambda.IFunction;
@@ -276,6 +277,26 @@ export class LambdasStack extends cdk.Stack {
     props.reportTable.grantReadWriteData(this.addSectionLambda);
     props.templateTable.grantReadWriteData(this.addSectionLambda);
     props.userPool.grant(this.addSectionLambda, "cognito-idp:AdminGetUser");
+
+    this.deleteSectionLambda = new lambda.Function(
+      this,
+      "DeleteSectionLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/delete-section")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+          TEMPLATE_TABLE: props.templateTable.tableName,
+        },
+        memorySize: 1024,
+      }
+    );
+    props.reportTable.grantReadWriteData(this.deleteSectionLambda);
+    props.templateTable.grantReadWriteData(this.deleteSectionLambda);
+    props.userPool.grant(this.deleteSectionLambda, "cognito-idp:AdminGetUser");
 
     this.updatePartLambda = new lambda.Function(this, "UpdatePartLambda", {
       code: lambda.Code.fromAsset(

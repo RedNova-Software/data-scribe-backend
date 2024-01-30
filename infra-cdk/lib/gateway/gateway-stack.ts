@@ -24,6 +24,7 @@ interface GatewayStackProps extends cdk.StackProps {
   addPartLambda: lambda.IFunction;
   deletePartLambda: lambda.IFunction;
   addSectionLambda: lambda.IFunction;
+  deleteSectionLambda: lambda.IFunction;
   updatePartLambda: lambda.IFunction;
   updateSectionLambda: lambda.IFunction;
   updateItemTitleLambda: lambda.IFunction;
@@ -243,6 +244,22 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const deleteSectionEndpoint = sharedSectionResource.addResource("delete");
+    deleteSectionEndpoint.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(props.deleteSectionLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.itemType": true,
+          "method.request.querystring.itemID": true,
+          "method.request.querystring.partIndex": true,
+          "method.request.querystring.sectionIndex": true,
+        },
       }
     );
 

@@ -2,34 +2,14 @@ package main
 
 import (
 	"api/shared/constants"
-	"api/shared/models"
 	"api/shared/util"
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
-
-type AddSectionToPartRequest struct {
-	ItemType     constants.ItemType `json:"itemType"`
-	ItemID       string             `json:"itemID"`
-	PartIndex    int                `json:"partIndex"`
-	SectionIndex int                `json:"sectionIndex"`
-	SectionTitle string             `json:"sectionTitle"`
-}
-
-type ReportSectionContents struct {
-	Questions   []models.ReportQuestion   `json:"questions"`
-	TextOutputs []models.ReportTextOutput `json:"textOutputs"`
-}
-
-type TemplateSectionContents struct {
-	Questions   []models.TemplateQuestion   `json:"questions"`
-	TextOutputs []models.TemplateTextOutput `json:"textOutputs"`
-}
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	userID, err := util.ExtractUserID(request)
@@ -41,44 +21,40 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	var req AddSectionToPartRequest
+	// Extract the query string parameterss
+	itemType := constants.ItemType(request.QueryStringParameters["itemType"])
+	itemID := request.QueryStringParameters["itemID"]
+	partIndexString := request.QueryStringParameters["partIndex"]
+	sectionIndexString := request.QueryStringParameters["sectionIndex"]
 
-	err = json.Unmarshal([]byte(request.Body), &req)
+	partIndex, err := strconv.Atoi(partIndexString)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: " + err.Error(),
+			Body:       "Bad Request: unable to parse partIndex. ensure it is an int",
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.PartIndex < 0 || req.SectionTitle == "" || req.SectionIndex < -1 {
+	sectionIndex, err := strconv.Atoi(sectionIndexString)
+	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType, itemID, sectionTitle, partIndex, and sectionIndex are required.",
+			Body:       "Bad Request: unable to parse sectionIndex. ensure it is an int",
 		}, nil
 	}
 
-	if req.ItemType == constants.Report {
-		var contents ReportSectionContents
+	if itemID == "" || itemType == "" || partIndex < 0 || sectionIndex < 0 {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Headers:    constants.CorsHeaders,
+			Body:       "Bad Request: itemType, itemID, and partIndex are required.",
+		}, nil
+	}
 
-		err := json.Unmarshal([]byte(request.Body), &contents)
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusBadRequest,
-				Headers:    constants.CorsHeaders,
-				Body:       "Bad Request: " + err.Error(),
-			}, nil
-		}
-
-		newSection := models.ReportSection{
-			Title:       req.SectionTitle,
-			Questions:   contents.Questions,
-			TextOutputs: contents.TextOutputs,
-		}
-		err = util.AddSectionToReport(req.ItemID, req.PartIndex, req.SectionIndex, newSection, userID)
-
+	if itemType == constants.Report || itemType == constants.Template {
+		err = util.DeleteSectionFromItem(itemType, itemID, partIndex, sectionIndex, userID)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
@@ -86,35 +62,6 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 				Body:       "Internal Server Error: " + err.Error(),
 			}, nil
 		}
-
-	} else if req.ItemType == constants.Template {
-		var contents TemplateSectionContents
-
-		err := json.Unmarshal([]byte(request.Body), &contents)
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusBadRequest,
-				Headers:    constants.CorsHeaders,
-				Body:       "Bad Request: " + err.Error(),
-			}, nil
-		}
-
-		newSection := models.TemplateSection{
-			Title:       req.SectionTitle,
-			Questions:   contents.Questions,
-			TextOutputs: contents.TextOutputs,
-		}
-
-		err = util.AddSectionToTemplate(req.ItemID, req.PartIndex, req.SectionIndex, newSection, userID)
-
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Headers:    constants.CorsHeaders,
-				Body:       "Internal Server Error: " + err.Error(),
-			}, nil
-		}
-
 	} else {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
@@ -126,7 +73,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Section added successfully to item with ID: " + req.ItemID + "and part with index: " + fmt.Sprint(req.PartIndex),
+		Body:       "Part delete successfully from item with id: " + itemID,
 	}, nil
 }
 

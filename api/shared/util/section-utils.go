@@ -106,6 +106,98 @@ func AddSectionToTemplate(templateID string, partIndex int, sectionIndex int, ne
 	return nil
 }
 
+// AddSectionToReport adds a Section to a Part with a specific index in a specified report.
+func DeleteSectionFromItem(itemType constants.ItemType,
+	itemID string,
+	partIndex int,
+	sectionIndex int,
+	userID string) error {
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	var tableName string
+
+	if itemType == constants.Report {
+		tableName := os.Getenv(constants.ReportTable)
+		report, err := GetReport(itemID, userID)
+
+		if err != nil {
+			return fmt.Errorf("error getting report from DynamoDB: %v", err)
+		}
+
+		if report == nil {
+			return fmt.Errorf("report not found: %v", err)
+		}
+
+		err = deleteReportSection(report, partIndex, sectionIndex)
+
+		if err != nil {
+			return fmt.Errorf("error deleteing report part: %v", err)
+		}
+
+		// Update last modified
+		report.LastModified = GetCurrentTime()
+
+		av, err := dynamodbattribute.MarshalMap(report)
+		if err != nil {
+			return err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return err
+		}
+
+	} else if itemType == constants.Template {
+		tableName = os.Getenv(constants.TemplateTable)
+		template, err := GetTemplate(itemID, userID)
+
+		if err != nil {
+			return fmt.Errorf("error getting template from DynamoDB: %v", err)
+		}
+
+		if template == nil {
+			return fmt.Errorf("template not found: %v", err)
+		}
+
+		err = deleteTemplateSection(template, partIndex, sectionIndex)
+
+		if err != nil {
+			return fmt.Errorf("error deleteing report part: %v", err)
+		}
+
+		// Update last modified
+		template.LastModified = GetCurrentTime()
+
+		av, err := dynamodbattribute.MarshalMap(template)
+		if err != nil {
+			return err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
+	}
+
+	return nil
+}
+
 func UpdateSectionInReport(
 	reportID string,
 	oldPartIndex int,
@@ -517,6 +609,29 @@ func insertSectionInReport(report *models.Report, partIndex int, sectionIndex in
 	return nil
 }
 
+func deleteReportSection(report *models.Report, partIndex int, sectionIndex int) error {
+	// Check if partIndex is within the range of the Parts slice
+	if partIndex < 0 || partIndex >= len(report.Parts) {
+		return errors.New("partIndex is out of range")
+	}
+
+	// Get the part from the report
+	part := report.Parts[partIndex]
+
+	// Check if sectionIndex is within the range of the Sections slice in the part
+	if sectionIndex < 0 || sectionIndex >= len(part.Sections) {
+		return errors.New("sectionIndex is out of range")
+	}
+
+	// Remove the section at the specified index
+	part.Sections = append(part.Sections[:sectionIndex], part.Sections[sectionIndex+1:]...)
+
+	// Update the part in the report
+	report.Parts[partIndex] = part
+
+	return nil
+}
+
 func moveSectionInReport(report *models.Report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex int) error {
 	if oldPartIndex < 0 || oldPartIndex >= len(report.Parts) || newPartIndex < 0 || newPartIndex >= len(report.Parts) {
 		// Handle out of range indices
@@ -556,6 +671,29 @@ func moveSectionInReport(report *models.Report, oldPartIndex, oldSectionIndex, n
 
 	// Insert the section
 	newPart.Sections = append(newPart.Sections[:newSectionIndex], append([]models.ReportSection{section}, newPart.Sections[newSectionIndex:]...)...)
+	return nil
+}
+
+func deleteTemplateSection(template *models.Template, partIndex int, sectionIndex int) error {
+	// Check if partIndex is within the range of the Parts slice
+	if partIndex < 0 || partIndex >= len(template.Parts) {
+		return errors.New("partIndex is out of range")
+	}
+
+	// Get the part from the report
+	part := template.Parts[partIndex]
+
+	// Check if sectionIndex is within the range of the Sections slice in the part
+	if sectionIndex < 0 || sectionIndex >= len(part.Sections) {
+		return errors.New("sectionIndex is out of range")
+	}
+
+	// Remove the section at the specified index
+	part.Sections = append(part.Sections[:sectionIndex], part.Sections[sectionIndex+1:]...)
+
+	// Update the part in the report
+	template.Parts[partIndex] = part
+
 	return nil
 }
 
