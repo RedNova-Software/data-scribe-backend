@@ -153,7 +153,6 @@ func isUserAuthorizedForItem(itemType constants.ItemType, itemID, userID string)
 	if itemType == constants.Report {
 		tableName = os.Getenv(constants.ReportTable)
 		itemKey = constants.ReportIDField
-
 	} else if itemType == constants.Template {
 		tableName = os.Getenv(constants.TemplateTable)
 		itemKey = constants.TemplateIDField

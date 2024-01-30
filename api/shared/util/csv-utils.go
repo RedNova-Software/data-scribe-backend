@@ -2,15 +2,11 @@ package util
 
 import (
 	"api/shared/constants"
-	"bytes"
-	"encoding/base64"
 	"io"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/google/uuid"
 )
 
 // Returns a handle to the csv file in the local file system
@@ -41,37 +37,4 @@ func GetCSVFileHandle(s3Key string) (*os.File, error) {
 	// Copy the contents of the S3 object to the file
 	_, err = io.Copy(file, downOutput.Body)
 	return file, err
-}
-
-// Uploads the csv to S3 and returns its key
-func UploadBase64CSVtoS3(base64Data string) (string, error) {
-	// Decode the base64 string
-	data, err := base64.StdEncoding.DecodeString(base64Data)
-	if err != nil {
-		return "", err
-	}
-
-	// Get the S3 client (singleton)
-	s3Client, err := GetS3Client(os.Getenv(constants.USEast2))
-	if err != nil {
-		return "", err
-	}
-
-	// Create an uploader with the S3 client
-	uploader := s3manager.NewUploaderWithClient(s3Client)
-
-	objectKey := uuid.New().String() + ".csv"
-
-	// Upload the file
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(os.Getenv(constants.S3BucketName)),
-		Key:    aws.String(objectKey),
-		Body:   bytes.NewReader(data),
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return objectKey, nil
 }

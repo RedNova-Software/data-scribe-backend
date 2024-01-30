@@ -155,9 +155,9 @@ export class LambdasStack extends cdk.Stack {
         REPORT_TABLE: props.reportTable.tableName,
         S3_BUCKET_NAME: props.csvBucket.bucketName,
       },
+      timeout: cdk.Duration.seconds(30),
     });
     props.reportTable.grantReadWriteData(this.uploadCSVLambda);
-    props.templateTable.grantReadWriteData(this.uploadCSVLambda);
     props.csvBucket.grantReadWrite(this.uploadCSVLambda);
     // --------------------------------------------------------- //
     // Template Lambdas

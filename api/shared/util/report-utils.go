@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -339,30 +340,31 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 	return nil
 }
 
-func SetReportCSV(reportID, base64CSVData, userID string) error {
+func SetReportCSV(reportID, userID string) (string, error) {
 	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
 
 	if err != nil {
-		return fmt.Errorf("error getting authentication status for report: %v", err)
+		return "", fmt.Errorf("error getting authentication status for report: %v", err)
 	}
 
 	if !isAuthorized {
-		return fmt.Errorf("user is not authorized for report")
+		return "", fmt.Errorf("user is not authorized for report")
 	}
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
-		return fmt.Errorf("error getting dynamodb client: %v", err)
+		return "", fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	fileS3Key := uuid.New().String() + ".csv"
+	preSignedURL, err := GeneratePresignedURL(os.Getenv(constants.S3BucketName), fileS3Key, "text/csv", 3*time.Minute)
+
+	if err != nil {
+		return "", fmt.Errorf("error generating presigned url: %v", err)
 	}
 
 	tableName := os.Getenv(constants.ReportTable)
 	reportKey := constants.ReportIDField
-
-	s3Key, err := UploadBase64CSVtoS3(base64CSVData)
-
-	if err != nil {
-		return fmt.Errorf("error uploading csv to s3: %v", err)
-	}
 
 	currentUnixTime := GetCurrentTime()
 
@@ -376,7 +378,7 @@ func SetReportCSV(reportID, base64CSVData, userID string) error {
 		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedField + " = :lm"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":s3k": {
-				S: aws.String(s3Key),
+				S: aws.String(fileS3Key),
 			},
 			":lm": {
 				N: aws.String(strconv.FormatInt(currentUnixTime, 10)),
@@ -387,10 +389,10 @@ func SetReportCSV(reportID, base64CSVData, userID string) error {
 	// Update the report in DynamoDB
 	_, err = dynamoDBClient.UpdateItem(input)
 	if err != nil {
-		return fmt.Errorf("failed to update item: %v", err)
+		return "", fmt.Errorf("failed to update item: %v", err)
 	}
 
-	return nil
+	return preSignedURL, nil
 }
 
 func ensureNonNullReportFields(report *models.Report) {

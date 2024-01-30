@@ -12,8 +12,11 @@ import (
 )
 
 type UploadCsvRequest struct {
-	ReportID        string `json:"reportID"`
-	CSVBase64String string `json:"csvBase64String"`
+	ReportID string `json:"reportID"`
+}
+
+type UploadCsvResponse struct {
+	PreSignedURL string
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -36,15 +39,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ReportID == "" || req.CSVBase64String == "" {
+	if req.ReportID == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: reportID, and csvBase64String are required.",
+			Body:       "Bad Request: reportID is required.",
 		}, nil
 	}
 
-	err = util.SetReportCSV(req.ReportID, req.CSVBase64String, userID)
+	preSignedURL, err := util.SetReportCSV(req.ReportID, userID)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -53,10 +56,24 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
+	// Marshal the report into JSON
+	response := UploadCsvResponse{
+		PreSignedURL: preSignedURL,
+	}
+
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Body:       "Error marshalling response into JSON: " + err.Error(),
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Part added successfully to report with ID: " + req.ReportID,
+		Body:       string(responseJSON),
 	}, nil
 }
 

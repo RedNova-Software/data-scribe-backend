@@ -20,6 +20,19 @@ export class S3BucketStack extends cdk.Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
+    // Add CORS rule. This is needed for pre-signed urls
+    // that we use to upload csvs
+    this.csvBucket.addCorsRule({
+      allowedMethods: [
+        s3.HttpMethods.GET,
+        s3.HttpMethods.PUT,
+        s3.HttpMethods.POST,
+        s3.HttpMethods.DELETE,
+      ],
+      allowedOrigins: ["*"],
+      allowedHeaders: ["Content-Type"],
+    });
+
     // Optional: Output the bucket name
     new cdk.CfnOutput(this, "BucketName", { value: this.csvBucket.bucketName });
   }

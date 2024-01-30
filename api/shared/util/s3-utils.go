@@ -1,7 +1,9 @@
 package util
 
 import (
+	"api/shared/constants"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -30,4 +32,25 @@ func newS3Client(region string) (*s3.S3, error) {
 		return nil, err
 	}
 	return s3.New(sess), nil
+}
+
+func GeneratePresignedURL(bucketName, objectKey string, contentType string, duration time.Duration) (string, error) {
+	s3Client, err := GetS3Client(constants.USEast2)
+	if err != nil {
+		return "", err
+	}
+	// Generate the pre-signed URL for put operations
+	req, _ := s3Client.PutObjectRequest(&s3.PutObjectInput{
+		Bucket:      aws.String(bucketName),
+		Key:         aws.String(objectKey),
+		ContentType: aws.String(contentType),
+	})
+
+	// Create the pre-signed URL
+	urlStr, err := req.Presign(duration)
+	if err != nil {
+		return "", err
+	}
+
+	return urlStr, nil
 }
