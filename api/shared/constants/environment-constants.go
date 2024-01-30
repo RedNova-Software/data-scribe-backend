@@ -12,3 +12,7 @@ const (
 const (
 	UserPoolID string = "USER_POOL_ID"
 )
+
+const (
+	S3BucketName string = "S3_BUCKET_NAME"
+)

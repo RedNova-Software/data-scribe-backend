@@ -6,6 +6,7 @@ import { DynamoDBStack } from "./dynamodb/dynamodb-stack";
 import { LambdasStack } from "./lambda/lambda-stack";
 import { GatewayStack } from "./gateway/gateway-stack";
 import { CognitoUserPoolStack } from "./cognito/cognito-stack";
+import { S3BucketStack } from "./s3/s3-stack";
 
 const app = new cdk.App();
 const env = {
@@ -20,11 +21,16 @@ const cognitoStack = new CognitoUserPoolStack(app, "CognitoStack", {
   env: env, // Specify the account and region
 });
 
+const s3BucketStack = new S3BucketStack(app, "CSVBucketStack", {
+  env: env, // Specify the account and region
+});
+
 const lambdaFunctionsStack = new LambdasStack(app, "LambdaStack", {
   env,
   reportTable: dynamoDBStack.reportTable,
   templateTable: dynamoDBStack.templateTable,
   userPool: cognitoStack.userPool,
+  csvBucket: s3BucketStack.csvBucket,
 });
 
 const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
@@ -49,6 +55,7 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   updateItemTitleLambda: lambdaFunctionsStack.updateItemTitleLambda,
   shareItemLambda: lambdaFunctionsStack.shareItemLambda,
   convertItemLambda: lambdaFunctionsStack.convertItemLambda,
+  uploadCSVLambda: lambdaFunctionsStack.uploadCSVLambda,
 
   // User Lambdas
   getUserIDLambda: lambdaFunctionsStack.getUserIDLambda,

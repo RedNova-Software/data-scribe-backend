@@ -126,7 +126,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Section added successfully to report with ID: " + req.ItemID + "and part with index: " + fmt.Sprint(req.PartIndex),
+		Body:       "Section added successfully to item with ID: " + req.ItemID + "and part with index: " + fmt.Sprint(req.PartIndex),
 	}, nil
 }
 

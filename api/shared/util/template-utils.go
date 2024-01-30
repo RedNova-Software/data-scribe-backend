@@ -44,6 +44,16 @@ func PutNewTemplate(template models.Template) error {
 }
 
 func GetTemplate(templateID string, userID string) (*models.Template, error) {
+	isAuthorized, err := isUserAuthorizedForItem(constants.Template, templateID, userID)
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting authentication status for item: %v", err)
+	}
+
+	if !isAuthorized {
+		return nil, fmt.Errorf("user is not authorized for item")
+	}
+
 	tableName := os.Getenv(constants.TemplateTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	keyName := constants.TemplateIDField
@@ -81,10 +91,6 @@ func GetTemplate(templateID string, userID string) (*models.Template, error) {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into template: %v", err)
 	}
 
-	if !isUserAuthorizedForTemplate(template, userID) {
-		return nil, fmt.Errorf("user does not have access to this report")
-	}
-
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
 	// When we create an empty report, the parts will be null in dynamodb.
@@ -113,7 +119,7 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 	fields := []string{
 		constants.TemplateIDField,
 		constants.TitleField,
-		constants.OwnerUserIDField,
+		constants.OwnedByUserIDField,
 		constants.SharedWithIDsField,
 		constants.CreatedField,
 		constants.LastModifiedField,
@@ -122,7 +128,7 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 	projectionExpression := strings.Join(fields, ", ")
 
 	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnerUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
+	filterExpression := constants.OwnedByUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -169,6 +175,17 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 }
 
 func SetTemplateShared(templateID string, userIDs []string, userID string) error {
+
+	isOwner, err := isUserOwnerOfItem(constants.Template, templateID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error checking if user is owner of report: %v", err)
+	}
+
+	if !isOwner {
+		return fmt.Errorf("user is not the owner of this report. cannot share with others")
+	}
+
 	tableName := os.Getenv(constants.TemplateTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -184,12 +201,6 @@ func SetTemplateShared(templateID string, userIDs []string, userID string) error
 
 	if template == nil {
 		return fmt.Errorf("report not found: %v", err)
-	}
-
-	// Eventually you could refactor this into checking dynamodb first so we don't incur costs for loading data, but this should never be called
-	// so it's not worth it right now.
-	if !isUserOwnerOfTemplate(template, userID) {
-		return fmt.Errorf("user is not the owner of this template. cannot share with others")
 	}
 
 	template.SharedWithIDs = userIDs
@@ -213,6 +224,16 @@ func SetTemplateShared(templateID string, userIDs []string, userID string) error
 }
 
 func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, userID string) error {
+	isAuthorized, err := isUserAuthorizedForItem(constants.Template, templateID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting authentication status for item: %v", err)
+	}
+
+	if !isAuthorized {
+		return fmt.Errorf("user is not authorized for item")
+	}
+
 	reportTableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -228,10 +249,6 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 
 	if template == nil {
 		return fmt.Errorf("template not found: %v", err)
-	}
-
-	if !isUserAuthorizedForTemplate(template, userID) {
-		return fmt.Errorf("user does not have access to this template. cannot convert to report")
 	}
 
 	ownerNickName, err := GetUserNickname(userID)
@@ -403,26 +420,4 @@ func setTemplateMetadataOwnerUserName(templateMetadata *models.TemplateMetadata)
 	}
 
 	templateMetadata.OwnedBy.UserNickName = userNickName
-}
-
-// isUserAuthorizedForReport checks if a given userID is the owner of the template or is in the shared users list
-func isUserAuthorizedForTemplate(template *models.Template, userID string) bool {
-	// Check if the user is the owner
-	if template.OwnedBy.UserID == userID {
-		return true
-	}
-
-	// Check if the user is in the shared list
-	for _, id := range template.SharedWithIDs {
-		if id == userID {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isUserOwnerOfTemplate(template *models.Template, userID string) bool {
-	// Check if the user is the owner
-	return template.OwnedBy.UserID == userID
 }

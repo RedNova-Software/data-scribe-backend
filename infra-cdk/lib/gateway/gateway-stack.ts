@@ -28,6 +28,7 @@ interface GatewayStackProps extends cdk.StackProps {
   updateItemTitleLambda: lambda.IFunction;
   shareItemLambda: lambda.IFunction;
   convertItemLambda: lambda.IFunction;
+  uploadCSVLambda: lambda.IFunction;
 
   // User Lambdas
   getUserIDLambda: lambda.IFunction;
@@ -92,6 +93,7 @@ export class GatewayStack extends cdk.Stack {
     const sharedResource = gateway.root.addResource("shared");
     const sharedPartResource = sharedResource.addResource("parts");
     const sharedSectionResource = sharedPartResource.addResource("sections");
+    const csvResource = sharedResource.addResource("csv");
 
     // Report Endpoints
 
@@ -251,6 +253,16 @@ export class GatewayStack extends cdk.Stack {
     convertItemEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.convertItemLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const uploadCSVEndpoint = csvResource.addResource("upload");
+    uploadCSVEndpoint.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(props.uploadCSVLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,

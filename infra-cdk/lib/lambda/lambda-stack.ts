@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import { type Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import type * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import path = require("path");
 import * as fs from "fs";
@@ -10,6 +11,7 @@ interface LambdasStackProps extends cdk.StackProps {
   reportTable: dynamodb.Table;
   templateTable: dynamodb.Table;
   userPool: cognito.UserPool;
+  readonly csvBucket: s3.Bucket;
 }
 
 export class LambdasStack extends cdk.Stack {
@@ -33,6 +35,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly updateItemTitleLambda: lambda.IFunction;
   public readonly shareItemLambda: lambda.IFunction;
   public readonly convertItemLambda: lambda.IFunction;
+  public readonly uploadCSVLambda: lambda.IFunction;
 
   // User Lambdas
   public readonly getUserIDLambda: lambda.IFunction;
@@ -130,7 +133,6 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
           OPENAI_API_KEY: openAIKey,
-          USER_POOL_ID: props.userPool.userPoolId,
         },
         timeout: cdk.Duration.minutes(5),
         memorySize: 1024,
@@ -219,7 +221,6 @@ export class LambdasStack extends cdk.Stack {
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
-        USER_POOL_ID: props.userPool.userPoolId,
       },
       memorySize: 1024,
     });
@@ -236,7 +237,6 @@ export class LambdasStack extends cdk.Stack {
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
-        USER_POOL_ID: props.userPool.userPoolId,
       },
       memorySize: 1024,
     });
@@ -253,7 +253,6 @@ export class LambdasStack extends cdk.Stack {
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
-        USER_POOL_ID: props.userPool.userPoolId,
       },
       memorySize: 1024,
     });
@@ -273,7 +272,6 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
           TEMPLATE_TABLE: props.templateTable.tableName,
-          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
@@ -294,7 +292,6 @@ export class LambdasStack extends cdk.Stack {
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
           TEMPLATE_TABLE: props.templateTable.tableName,
-          USER_POOL_ID: props.userPool.userPoolId,
         },
         memorySize: 1024,
       }
@@ -314,14 +311,12 @@ export class LambdasStack extends cdk.Stack {
       runtime: lambda.Runtime.PROVIDED_AL2023,
       memorySize: 1024,
       environment: {
-        USER_POOL_ID: props.userPool.userPoolId,
         REPORT_TABLE: props.reportTable.tableName,
         TEMPLATE_TABLE: props.templateTable.tableName,
       },
     });
     props.reportTable.grantReadWriteData(this.shareItemLambda);
     props.templateTable.grantReadWriteData(this.shareItemLambda);
-    props.userPool.grant(this.shareItemLambda, "cognito-idp:ListUsers");
 
     this.convertItemLambda = new lambda.Function(this, "ConvertItemLambda", {
       code: lambda.Code.fromAsset(
@@ -338,7 +333,23 @@ export class LambdasStack extends cdk.Stack {
     });
     props.reportTable.grantReadWriteData(this.convertItemLambda);
     props.templateTable.grantReadWriteData(this.convertItemLambda);
-    props.userPool.grant(this.convertItemLambda, "cognito-idp:ListUsers");
+
+    this.uploadCSVLambda = new lambda.Function(this, "UploadCSVLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/upload-csv")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      memorySize: 1024,
+      environment: {
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+        S3_BUCKET_NAME: props.csvBucket.bucketName,
+      },
+    });
+    props.reportTable.grantReadWriteData(this.uploadCSVLambda);
+    props.templateTable.grantReadWriteData(this.uploadCSVLambda);
+    props.csvBucket.grantReadWrite(this.uploadCSVLambda);
 
     // --------------------------------------------------------- //
 
