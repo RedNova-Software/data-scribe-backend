@@ -18,6 +18,7 @@ export class DynamoDBStack extends cdk.Stack {
       timeToLiveAttribute: Tables.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
+      deletionProtection: true,
     });
 
     this.templateTable = new dynamodb.Table(this, DynamoDBTable.TemplateTable, {
@@ -28,6 +29,7 @@ export class DynamoDBStack extends cdk.Stack {
       timeToLiveAttribute: Tables.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
+      deletionProtection: true,
     });
   }
 }
