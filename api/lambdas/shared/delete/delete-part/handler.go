@@ -4,18 +4,12 @@ import (
 	"api/shared/constants"
 	"api/shared/util"
 	"context"
-	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
-
-type DeletePartRequest struct {
-	ItemType constants.ItemType `json:"itemType"`
-	ItemID   string             `json:"itemID"`
-	Index    int                `json:"partIndex"`
-}
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	userID, err := util.ExtractUserID(request)
@@ -27,17 +21,21 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	var req DeletePartRequest
-	err = json.Unmarshal([]byte(request.Body), &req)
+	// Extract the query string parameterss
+	itemType := constants.ItemType(request.QueryStringParameters["itemType"])
+	itemID := request.QueryStringParameters["itemID"]
+	partIndexString := request.QueryStringParameters["partIndex"]
+
+	partIndex, err := strconv.Atoi(partIndexString)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: " + err.Error(),
+			Body:       "Bad Request: unable to parse partIndex. ensure it is an int",
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.Index < 0 {
+	if itemID == "" || itemType == "" || partIndex < 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
@@ -45,8 +43,8 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == constants.Report || req.ItemType == constants.Template {
-		err = util.DeletePartFromItem(req.ItemType, req.ItemID, req.Index, userID)
+	if itemType == constants.Report || itemType == constants.Template {
+		err = util.DeletePartFromItem(itemType, itemID, partIndex, userID)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
@@ -65,7 +63,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Part added successfully to item with ID: " + req.ItemID,
+		Body:       "Part delete successfully from item with id: " + itemID,
 	}, nil
 }
 

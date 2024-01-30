@@ -29,6 +29,7 @@ export class LambdasStack extends cdk.Stack {
 
   // Shared Lambdas
   public readonly addPartLambda: lambda.IFunction;
+  public readonly deletePartLambda: lambda.IFunction;
   public readonly addSectionLambda: lambda.IFunction;
   public readonly updatePartLambda: lambda.IFunction;
   public readonly updateSectionLambda: lambda.IFunction;
@@ -243,6 +244,22 @@ export class LambdasStack extends cdk.Stack {
     props.reportTable.grantReadWriteData(this.addPartLambda);
     props.templateTable.grantReadWriteData(this.addPartLambda);
     props.userPool.grant(this.addPartLambda, "cognito-idp:AdminGetUser");
+
+    this.deletePartLambda = new lambda.Function(this, "DeletePartLambda", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../bin/lambdas/delete-part")
+      ),
+      handler: "main",
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      environment: {
+        REPORT_TABLE: props.reportTable.tableName,
+        TEMPLATE_TABLE: props.templateTable.tableName,
+      },
+      memorySize: 1024,
+    });
+    props.reportTable.grantReadWriteData(this.deletePartLambda);
+    props.templateTable.grantReadWriteData(this.deletePartLambda);
+    props.userPool.grant(this.deletePartLambda, "cognito-idp:AdminGetUser");
 
     this.addSectionLambda = new lambda.Function(this, "AddSectionLambda", {
       code: lambda.Code.fromAsset(
