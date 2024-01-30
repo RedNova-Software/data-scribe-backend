@@ -16,6 +16,7 @@ export class DynamoDBStack extends cdk.Stack {
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
     });
 
     this.templateTable = new dynamodb.Table(this, DynamoDBTable.TemplateTable, {
@@ -24,6 +25,7 @@ export class DynamoDBStack extends cdk.Stack {
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
     });
   }
 }
