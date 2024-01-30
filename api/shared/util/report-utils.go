@@ -104,7 +104,7 @@ func GetReport(reportID string, userID string) (*models.Report, error) {
 	return report, nil
 }
 
-func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
+func GetAllReports(userID string, deletedReportsOnly bool) ([]*models.ReportMetadata, error) {
 	tableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -122,12 +122,15 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 		constants.SharedWithIDsField,
 		constants.CreatedField,
 		constants.LastModifiedField,
+		constants.IsDeletedField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnedByUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
+	filterExpression := "(" +
+		constants.OwnedByUserIDField +
+		" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
+		constants.IsDeletedField + " = :isDeleted"
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -135,6 +138,9 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":userID": {
 				S: aws.String(userID),
+			},
+			":isDeleted": {
+				BOOL: aws.Bool(deletedReportsOnly),
 			},
 		},
 		ProjectionExpression: aws.String(projectionExpression),

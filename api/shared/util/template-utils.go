@@ -102,7 +102,7 @@ func GetTemplate(templateID string, userID string) (*models.Template, error) {
 	return template, nil
 }
 
-func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
+func GetAllTemplates(userID string, deletedTemplatesOnly bool) ([]*models.TemplateMetadata, error) {
 	tableName := os.Getenv(constants.TemplateTable)
 
 	// Create a new DynamoDB session
@@ -127,8 +127,10 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnedByUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
+	filterExpression := "(" +
+		constants.OwnedByUserIDField +
+		" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
+		constants.IsDeletedField + " = :isDeleted"
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -136,6 +138,9 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":userID": {
 				S: aws.String(userID),
+			},
+			":isDeleted": {
+				BOOL: aws.Bool(deletedTemplatesOnly),
 			},
 		},
 		ProjectionExpression: aws.String(projectionExpression),

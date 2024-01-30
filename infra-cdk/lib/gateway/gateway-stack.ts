@@ -120,6 +120,9 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.deletedOnly": true,
+        },
       }
     );
 
@@ -187,6 +190,9 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.deletedOnly": true,
+        },
       }
     );
 
