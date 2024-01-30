@@ -131,7 +131,7 @@ func UpdateItemTitle(itemType constants.ItemType, itemID, newTitle string, userI
 				S: aws.String(itemID),
 			},
 		},
-		UpdateExpression: aws.String("set " + constants.TitleField + " = :t, " + constants.LastModifiedField + " = :lm"),
+		UpdateExpression: aws.String("set " + constants.TitleField + " = :t, " + constants.LastModifiedAtField + " = :lm"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":t": {
 				S: aws.String(newTitle),

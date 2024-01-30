@@ -33,8 +33,8 @@ const (
 )
 
 const (
-	CreatedField      string = "CreatedAt"
-	LastModifiedField string = "LastModifiedAt"
+	CreatedAtField      string = "CreatedAt"
+	LastModifiedAtField string = "LastModifiedAt"
 )
 
 const (

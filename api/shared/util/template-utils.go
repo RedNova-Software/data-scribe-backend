@@ -125,8 +125,8 @@ func GetAllTemplates(userID string, deletedTemplatesOnly bool) ([]*models.Templa
 		constants.TitleField,
 		constants.OwnedByUserIDField,
 		constants.SharedWithIDsField,
-		constants.CreatedField,
-		constants.LastModifiedField,
+		constants.CreatedAtField,
+		constants.LastModifiedAtField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
@@ -227,9 +227,9 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 			UserID:       userID,
 			UserNickName: ownerNickName,
 		},
-		SharedWithIDs: make([]string, 0),
-		Created:       GetCurrentTime(),
-		LastModified:  GetCurrentTime(),
+		SharedWithIDs:  make([]string, 0),
+		CreatedAt:      GetCurrentTime(),
+		LastModifiedAt: GetCurrentTime(),
 		// Create empty parts for filling
 		Parts: make([]models.ReportPart, 0),
 	}

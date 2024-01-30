@@ -41,7 +41,7 @@ func AddSectionToReport(reportID string, partIndex int, sectionIndex int, newSec
 	}
 
 	// Update last modified
-	report.LastModified = GetCurrentTime()
+	report.LastModifiedAt = GetCurrentTime()
 
 	// Marshal the updated Report back to a map
 	updatedReport, err := dynamodbattribute.MarshalMap(report)
@@ -139,7 +139,7 @@ func DeleteSectionFromItem(itemType constants.ItemType,
 		}
 
 		// Update last modified
-		report.LastModified = GetCurrentTime()
+		report.LastModifiedAt = GetCurrentTime()
 
 		av, err := dynamodbattribute.MarshalMap(report)
 		if err != nil {
@@ -259,7 +259,7 @@ func UpdateSectionInReport(
 	}
 
 	// Update last modified
-	report.LastModified = GetCurrentTime()
+	report.LastModifiedAt = GetCurrentTime()
 
 	av, err := dynamodbattribute.MarshalMap(report)
 	if err != nil {
@@ -386,7 +386,7 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 	section.OutputGenerated = true
 
 	// Update last modified
-	report.LastModified = GetCurrentTime()
+	report.LastModifiedAt = GetCurrentTime()
 
 	// Update the report in DynamoDB
 	updatedReport, err := dynamodbattribute.MarshalMap(report)

@@ -35,10 +35,10 @@ type Template struct {
 }
 
 type TemplateMetadata struct {
-	TemplateID   string
-	Title        string
-	OwnedBy      User
-	SharedWith   []User
-	Created      int64
-	LastModified int64
+	TemplateID     string
+	Title          string
+	OwnedBy        User
+	SharedWith     []User
+	CreatedAt      int64
+	LastModifiedAt int64
 }

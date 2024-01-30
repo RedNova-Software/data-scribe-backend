@@ -54,7 +54,7 @@ func AddPartToItem(
 		}
 
 		// Update last modified
-		report.LastModified = GetCurrentTime()
+		report.LastModifiedAt = GetCurrentTime()
 
 		av, err := dynamodbattribute.MarshalMap(report)
 		if err != nil {
@@ -155,7 +155,7 @@ func DeletePartFromItem(
 		}
 
 		// Update last modified
-		report.LastModified = GetCurrentTime()
+		report.LastModifiedAt = GetCurrentTime()
 
 		av, err := dynamodbattribute.MarshalMap(report)
 		if err != nil {
@@ -251,7 +251,7 @@ func UpdatePartInItem(
 		}
 
 		// Update last modified
-		report.LastModified = GetCurrentTime()
+		report.LastModifiedAt = GetCurrentTime()
 
 		av, err := dynamodbattribute.MarshalMap(report)
 		if err != nil {

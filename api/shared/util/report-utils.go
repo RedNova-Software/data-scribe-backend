@@ -124,8 +124,8 @@ func GetAllReports(userID string, deletedReportsOnly bool) ([]*models.ReportMeta
 		constants.CityField,
 		constants.OwnedByUserIDField,
 		constants.SharedWithIDsField,
-		constants.CreatedField,
-		constants.LastModifiedField,
+		constants.CreatedAtField,
+		constants.LastModifiedAtField,
 		constants.IsDeletedField,
 	}
 
@@ -333,7 +333,7 @@ func SetReportCSV(reportID, userID string) (string, error) {
 				S: aws.String(reportID),
 			},
 		},
-		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedField + " = :lm"),
+		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedAtField + " = :lm"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":s3k": {
 				S: aws.String(fileS3Key),
