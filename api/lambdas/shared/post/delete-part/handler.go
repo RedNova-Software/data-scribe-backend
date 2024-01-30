@@ -45,17 +45,8 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == constants.Report {
-		err = util.DeletePartFromItem(constants.Report, req.ItemID, req.Index, userID)
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Headers:    constants.CorsHeaders,
-				Body:       "Internal Server Error: " + err.Error(),
-			}, nil
-		}
-	} else if req.ItemType == constants.Template {
-		err = util.DeletePartFromItem(constants.Template, req.ItemID, req.Index, userID)
+	if req.ItemType == constants.Report || req.ItemType == constants.Template {
+		err = util.DeletePartFromItem(req.ItemType, req.ItemID, req.Index, userID)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,

@@ -13,6 +13,83 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
+func SetItemShared(itemType constants.ItemType, itemID string, userIDs []string, userID string) error {
+
+	isOwner, err := isUserOwnerOfItem(itemType, itemID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error checking if user is owner of item: %v", err)
+	}
+
+	if !isOwner {
+		return fmt.Errorf("user is not the owner of this item. cannot share with others")
+	}
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	var tableName string
+	var av map[string]*dynamodb.AttributeValue
+
+	if itemType == constants.Report {
+		tableName = os.Getenv(constants.ReportTable)
+
+		report, err := GetReport(itemID, userID)
+
+		if err != nil {
+			return fmt.Errorf("error getting template from DynamoDB: %v", err)
+		}
+
+		if report == nil {
+			return fmt.Errorf("template not found: %v", err)
+		}
+
+		report.SharedWithIDs = userIDs
+
+		av, err = dynamodbattribute.MarshalMap(report)
+		if err != nil {
+			return err
+		}
+
+	} else if itemType == constants.Template {
+		tableName = os.Getenv(constants.TemplateTable)
+
+		template, err := GetTemplate(itemID, userID)
+
+		if err != nil {
+			return fmt.Errorf("error getting template from DynamoDB: %v", err)
+		}
+
+		if template == nil {
+			return fmt.Errorf("template not found: %v", err)
+		}
+
+		template.SharedWithIDs = userIDs
+
+		av, err = dynamodbattribute.MarshalMap(template)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
+	}
+
+	updateInput := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoDBClient.PutItem(updateInput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func UpdateItemTitle(itemType constants.ItemType, itemID, newTitle string, userID string) error {
 
 	isAuthorized, err := isUserAuthorizedForItem(itemType, itemID, userID)

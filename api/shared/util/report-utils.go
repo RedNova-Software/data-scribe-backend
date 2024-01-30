@@ -174,58 +174,6 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 	return reports, nil
 }
 
-func SetReportShared(reportID string, userIDs []string, userID string) error {
-
-	isOwner, err := isUserOwnerOfItem(constants.Report, reportID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error checking if user is owner of report: %v", err)
-	}
-
-	if !isOwner {
-		return fmt.Errorf("user is not the owner of this report. cannot share with others")
-	}
-
-	tableName := os.Getenv(constants.ReportTable)
-
-	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
-	if err != nil {
-		return fmt.Errorf("error getting dynamodb client: %v", err)
-	}
-
-	report, err := GetReport(reportID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error getting report from DynamoDB: %v", err)
-	}
-
-	if report == nil {
-		return fmt.Errorf("report not found: %v", err)
-	}
-
-	// Eventually you could refactor this into checking dynamodb first so we don't incur costs for loading data, but this should never be called
-	// so it's not worth it right now.
-
-	report.SharedWithIDs = userIDs
-
-	av, err := dynamodbattribute.MarshalMap(report)
-	if err != nil {
-		return err
-	}
-
-	updateInput := &dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String(tableName),
-	}
-
-	_, err = dynamoDBClient.PutItem(updateInput)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
 

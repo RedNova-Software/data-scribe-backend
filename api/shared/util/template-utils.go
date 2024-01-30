@@ -174,55 +174,6 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 	return templates, nil
 }
 
-func SetTemplateShared(templateID string, userIDs []string, userID string) error {
-
-	isOwner, err := isUserOwnerOfItem(constants.Template, templateID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error checking if user is owner of report: %v", err)
-	}
-
-	if !isOwner {
-		return fmt.Errorf("user is not the owner of this report. cannot share with others")
-	}
-
-	tableName := os.Getenv(constants.TemplateTable)
-
-	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
-	if err != nil {
-		return fmt.Errorf("error getting dynamodb client: %v", err)
-	}
-
-	template, err := GetTemplate(templateID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error getting report from DynamoDB: %v", err)
-	}
-
-	if template == nil {
-		return fmt.Errorf("report not found: %v", err)
-	}
-
-	template.SharedWithIDs = userIDs
-
-	av, err := dynamodbattribute.MarshalMap(template)
-	if err != nil {
-		return err
-	}
-
-	updateInput := &dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String(tableName),
-	}
-
-	_, err = dynamoDBClient.PutItem(updateInput)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, userID string) error {
 	isAuthorized, err := isUserAuthorizedForItem(constants.Template, templateID, userID)
 
