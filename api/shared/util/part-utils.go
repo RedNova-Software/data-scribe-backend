@@ -123,6 +123,97 @@ func AddPartToItem(
 	return nil
 }
 
+func DeletePartFromItem(
+	itemType constants.ItemType,
+	itemID string,
+	partIndex int,
+	userID string,
+) error {
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	var tableName string
+
+	if itemType == constants.Report {
+		tableName := os.Getenv(constants.ReportTable)
+		report, err := GetReport(itemID, userID)
+
+		if err != nil {
+			return fmt.Errorf("error getting report from DynamoDB: %v", err)
+		}
+
+		if report == nil {
+			return fmt.Errorf("report not found: %v", err)
+		}
+
+		err = deleteReportPart(report, partIndex)
+
+		if err != nil {
+			return fmt.Errorf("error deleteing report part: %v", err)
+		}
+
+		// Update last modified
+		report.LastModified = GetCurrentTime()
+
+		av, err := dynamodbattribute.MarshalMap(report)
+		if err != nil {
+			return err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return err
+		}
+
+	} else if itemType == constants.Template {
+		tableName = os.Getenv(constants.TemplateTable)
+		template, err := GetTemplate(itemID, userID)
+
+		if err != nil {
+			return fmt.Errorf("error getting template from DynamoDB: %v", err)
+		}
+
+		if template == nil {
+			return fmt.Errorf("template not found: %v", err)
+		}
+
+		err = deleteTemplatePart(template, partIndex)
+
+		if err != nil {
+			return fmt.Errorf("error deleteing report part: %v", err)
+		}
+
+		// Update last modified
+		template.LastModified = GetCurrentTime()
+
+		av, err := dynamodbattribute.MarshalMap(template)
+		if err != nil {
+			return err
+		}
+
+		updateInput := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String(tableName),
+		}
+
+		_, err = dynamoDBClient.PutItem(updateInput)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("incorrect item type specified. must be either 'report' or 'template'")
+	}
+
+	return nil
+}
+
 func UpdatePartInItem(
 	itemType constants.ItemType,
 	itemID string,
@@ -244,6 +335,18 @@ func insertReportPart(report *models.Report, part models.ReportPart, index int) 
 	return nil
 }
 
+func deleteReportPart(report *models.Report, index int) error {
+	// Check if the index is within the range of the Parts slice
+	if index < 0 || index >= len(report.Parts) {
+		// Handle the error appropriately, maybe log it or return an error
+		return fmt.Errorf("unable to delete report part. index out of range")
+	}
+
+	// Remove the element at the specified index
+	report.Parts = append(report.Parts[:index], report.Parts[index+1:]...)
+	return nil
+}
+
 func moveReportPart(report *models.Report, fromIndex, toIndex int) error {
 	if fromIndex < 0 || fromIndex >= len(report.Parts) || toIndex < -1 || toIndex >= len(report.Parts) {
 		// Handle the error or ignore if indices are out of bounds
@@ -294,6 +397,18 @@ func insertTemplatePart(template *models.Template, part models.TemplatePart, ind
 
 	// Insert the part at the specified position
 	template.Parts = append(template.Parts[:index], append([]models.TemplatePart{part}, template.Parts[index:]...)...)
+	return nil
+}
+
+func deleteTemplatePart(template *models.Template, index int) error {
+	// Check if the index is within the range of the Parts slice
+	if index < 0 || index >= len(template.Parts) {
+		// Handle the error appropriately, maybe log it or return an error
+		return fmt.Errorf("unable to delete template part. index out of range")
+	}
+
+	// Remove the element at the specified index
+	template.Parts = append(template.Parts[:index], template.Parts[index+1:]...)
 	return nil
 }
 
