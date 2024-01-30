@@ -15,6 +15,7 @@ export class DynamoDBStack extends cdk.Stack {
         name: Tables.ReportID,
         type: dynamodb.AttributeType.STRING,
       },
+      timeToLiveAttribute: Tables.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
     });
@@ -24,6 +25,7 @@ export class DynamoDBStack extends cdk.Stack {
         name: Tables.TemplateID,
         type: dynamodb.AttributeType.STRING,
       },
+      timeToLiveAttribute: Tables.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
     });
