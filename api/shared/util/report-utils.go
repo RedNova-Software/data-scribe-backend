@@ -131,10 +131,19 @@ func GetAllReports(userID string, deletedReportsOnly bool) ([]*models.ReportMeta
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	filterExpression := "(" +
-		constants.OwnedByUserIDField +
-		" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
-		constants.IsDeletedField + " = :isDeleted"
+	var filterExpression string
+
+	if deletedReportsOnly {
+		filterExpression =
+			constants.OwnedByUserIDField +
+				" = :userID AND " +
+				constants.IsDeletedField + " = :isDeleted"
+	} else {
+		filterExpression = "(" +
+			constants.OwnedByUserIDField +
+			" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
+			constants.IsDeletedField + " = :isDeleted"
+	}
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),

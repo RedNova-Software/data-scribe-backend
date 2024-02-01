@@ -131,10 +131,19 @@ func GetAllTemplates(userID string, deletedTemplatesOnly bool) ([]*models.Templa
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	filterExpression := "(" +
-		constants.OwnedByUserIDField +
-		" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
-		constants.IsDeletedField + " = :isDeleted"
+	var filterExpression string
+
+	if deletedTemplatesOnly {
+		filterExpression =
+			constants.OwnedByUserIDField +
+				" = :userID AND " +
+				constants.IsDeletedField + " = :isDeleted"
+	} else {
+		filterExpression = "(" +
+			constants.OwnedByUserIDField +
+			" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
+			constants.IsDeletedField + " = :isDeleted"
+	}
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
