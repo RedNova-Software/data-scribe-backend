@@ -91,6 +91,10 @@ func GetTemplate(templateID string, userID string) (*models.Template, error) {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into template: %v", err)
 	}
 
+	if template.IsDeleted {
+		return nil, fmt.Errorf("report is deleted. cannot fetch")
+	}
+
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
 	// When we create an empty report, the parts will be null in dynamodb.
@@ -102,7 +106,7 @@ func GetTemplate(templateID string, userID string) (*models.Template, error) {
 	return template, nil
 }
 
-func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
+func GetAllTemplates(userID string, deletedTemplatesOnly bool) ([]*models.TemplateMetadata, error) {
 	tableName := os.Getenv(constants.TemplateTable)
 
 	// Create a new DynamoDB session
@@ -121,14 +125,25 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 		constants.TitleField,
 		constants.OwnedByUserIDField,
 		constants.SharedWithIDsField,
-		constants.CreatedField,
-		constants.LastModifiedField,
+		constants.CreatedAtField,
+		constants.LastModifiedAtField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnedByUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
+	var filterExpression string
+
+	if deletedTemplatesOnly {
+		filterExpression =
+			constants.OwnedByUserIDField +
+				" = :userID AND " +
+				constants.IsDeletedField + " = :isDeleted"
+	} else {
+		filterExpression = "(" +
+			constants.OwnedByUserIDField +
+			" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
+			constants.IsDeletedField + " = :isDeleted"
+	}
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -136,6 +151,9 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":userID": {
 				S: aws.String(userID),
+			},
+			":isDeleted": {
+				BOOL: aws.Bool(deletedTemplatesOnly),
 			},
 		},
 		ProjectionExpression: aws.String(projectionExpression),
@@ -172,55 +190,6 @@ func GetAllTemplates(userID string) ([]*models.TemplateMetadata, error) {
 	}
 
 	return templates, nil
-}
-
-func SetTemplateShared(templateID string, userIDs []string, userID string) error {
-
-	isOwner, err := isUserOwnerOfItem(constants.Template, templateID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error checking if user is owner of report: %v", err)
-	}
-
-	if !isOwner {
-		return fmt.Errorf("user is not the owner of this report. cannot share with others")
-	}
-
-	tableName := os.Getenv(constants.TemplateTable)
-
-	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
-	if err != nil {
-		return fmt.Errorf("error getting dynamodb client: %v", err)
-	}
-
-	template, err := GetTemplate(templateID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error getting report from DynamoDB: %v", err)
-	}
-
-	if template == nil {
-		return fmt.Errorf("report not found: %v", err)
-	}
-
-	template.SharedWithIDs = userIDs
-
-	av, err := dynamodbattribute.MarshalMap(template)
-	if err != nil {
-		return err
-	}
-
-	updateInput := &dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String(tableName),
-	}
-
-	_, err = dynamoDBClient.PutItem(updateInput)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, userID string) error {
@@ -267,9 +236,9 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 			UserID:       userID,
 			UserNickName: ownerNickName,
 		},
-		SharedWithIDs: make([]string, 0),
-		Created:       GetCurrentTime(),
-		LastModified:  GetCurrentTime(),
+		SharedWithIDs:  make([]string, 0),
+		CreatedAt:      GetCurrentTime(),
+		LastModifiedAt: GetCurrentTime(),
 		// Create empty parts for filling
 		Parts: make([]models.ReportPart, 0),
 	}

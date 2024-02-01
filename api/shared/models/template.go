@@ -23,20 +23,22 @@ type TemplatePart struct {
 }
 
 type Template struct {
-	TemplateID    string
-	Title         string
-	Parts         []TemplatePart
-	OwnedBy       User
-	SharedWithIDs []string
-	Created       int64
-	LastModified  int64
+	TemplateID     string
+	Title          string
+	Parts          []TemplatePart
+	OwnedBy        User
+	SharedWithIDs  []string
+	LastModifiedAt int64
+	CreatedAt      int64
+	IsDeleted      bool
+	DeleteAt       int64
 }
 
 type TemplateMetadata struct {
-	TemplateID   string
-	Title        string
-	OwnedBy      User
-	SharedWith   []User
-	Created      int64
-	LastModified int64
+	TemplateID     string
+	Title          string
+	OwnedBy        User
+	SharedWith     []User
+	CreatedAt      int64
+	LastModifiedAt int64
 }

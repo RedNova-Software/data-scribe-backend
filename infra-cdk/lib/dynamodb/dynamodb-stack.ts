@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { type Construct } from "constructs";
-import { DynamoDBTable, ReportTable } from "../constants/dynamodb-constants";
+import { DynamoDBTable, Tables } from "../constants/dynamodb-constants";
 
 export class DynamoDBStack extends cdk.Stack {
   public readonly reportTable: dynamodb.Table;
@@ -12,18 +12,24 @@ export class DynamoDBStack extends cdk.Stack {
 
     this.reportTable = new dynamodb.Table(this, DynamoDBTable.ReportTable, {
       partitionKey: {
-        name: ReportTable.ReportID,
+        name: Tables.ReportID,
         type: dynamodb.AttributeType.STRING,
       },
+      timeToLiveAttribute: Tables.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
+      deletionProtection: true,
     });
 
     this.templateTable = new dynamodb.Table(this, DynamoDBTable.TemplateTable, {
       partitionKey: {
-        name: ReportTable.TemplateID,
+        name: Tables.TemplateID,
         type: dynamodb.AttributeType.STRING,
       },
+      timeToLiveAttribute: Tables.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
+      deletionProtection: true,
     });
   }
 }

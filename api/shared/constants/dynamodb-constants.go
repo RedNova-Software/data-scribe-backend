@@ -33,10 +33,15 @@ const (
 )
 
 const (
-	CreatedField      string = "Created"
-	LastModifiedField string = "LastModified"
+	CreatedAtField      string = "CreatedAt"
+	LastModifiedAtField string = "LastModifiedAt"
 )
 
 const (
 	CSVIDField string = "CSVID"
+)
+
+const (
+	IsDeletedField string = "IsDeleted"
+	DeleteAtField  string = "DeleteAt"
 )

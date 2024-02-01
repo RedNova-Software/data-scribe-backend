@@ -4,18 +4,11 @@ import (
 	"api/shared/constants"
 	"api/shared/util"
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
-
-type UpdateReportTitleRequest struct {
-	ItemType constants.ItemType `json:"itemType"`
-	ItemID   string             `json:"itemID"`
-	NewTitle string             `json:"newTitle"`
-}
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	userID, err := util.ExtractUserID(request)
@@ -27,27 +20,20 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	var req UpdateReportTitleRequest
-	err = json.Unmarshal([]byte(request.Body), &req)
-	if err != nil {
+	// Extract the query string parameterss
+	itemType := constants.ItemType(request.QueryStringParameters["itemType"])
+	itemID := request.QueryStringParameters["itemID"]
+
+	if itemID == "" || itemType == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: " + err.Error(),
+			Body:       "Bad Request: itemType and itemID are required.",
 		}, nil
 	}
 
-	if req.ItemType == "" || req.ItemID == "" || req.NewTitle == "" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType, itemID, and newTitle are required.",
-		}, nil
-	}
-
-	if req.ItemType == constants.Report || req.ItemType == constants.Template {
-		err = util.UpdateItemTitle(req.ItemType, req.ItemID, req.NewTitle, userID)
-
+	if itemType == constants.Report || itemType == constants.Template {
+		err = util.SetItemDeleted(itemType, itemID, true, userID)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
@@ -66,7 +52,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       "Title updated successfully",
+		Body:       "Item marked for deletion successfully",
 	}, nil
 }
 

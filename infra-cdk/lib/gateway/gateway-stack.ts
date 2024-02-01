@@ -14,6 +14,7 @@ interface GatewayStackProps extends cdk.StackProps {
   createReportLambda: lambda.IFunction;
   generateSectionLambda: lambda.IFunction;
   getAllReportTypesLambda: lambda.IFunction;
+  uploadCSVLambda: lambda.IFunction;
 
   // Template Lambas
   getTemplateByIDLambda: lambda.IFunction;
@@ -22,13 +23,16 @@ interface GatewayStackProps extends cdk.StackProps {
 
   // Shared Lambdas
   addPartLambda: lambda.IFunction;
+  deletePartLambda: lambda.IFunction;
   addSectionLambda: lambda.IFunction;
+  deleteSectionLambda: lambda.IFunction;
   updatePartLambda: lambda.IFunction;
   updateSectionLambda: lambda.IFunction;
   updateItemTitleLambda: lambda.IFunction;
   shareItemLambda: lambda.IFunction;
   convertItemLambda: lambda.IFunction;
-  uploadCSVLambda: lambda.IFunction;
+  deleteItemLambda: lambda.IFunction;
+  restoreItemLambda: lambda.IFunction;
 
   // User Lambdas
   getUserIDLambda: lambda.IFunction;
@@ -117,6 +121,9 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.deletedOnly": true,
+        },
       }
     );
 
@@ -184,6 +191,9 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.deletedOnly": true,
+        },
       }
     );
 
@@ -220,6 +230,21 @@ export class GatewayStack extends cdk.Stack {
       }
     );
 
+    const deletePartEndpoint = sharedPartResource.addResource("delete");
+    deletePartEndpoint.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(props.deletePartLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.itemType": true,
+          "method.request.querystring.itemID": true,
+          "method.request.querystring.partIndex": true,
+        },
+      }
+    );
+
     const addSectionEndpoint = sharedSectionResource.addResource("add");
     addSectionEndpoint.addMethod(
       "POST",
@@ -227,6 +252,22 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const deleteSectionEndpoint = sharedSectionResource.addResource("delete");
+    deleteSectionEndpoint.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(props.deleteSectionLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.itemType": true,
+          "method.request.querystring.itemID": true,
+          "method.request.querystring.partIndex": true,
+          "method.request.querystring.sectionIndex": true,
+        },
       }
     );
 
@@ -267,6 +308,34 @@ export class GatewayStack extends cdk.Stack {
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const deleteItemEndpoint = sharedResource.addResource("delete");
+    deleteItemEndpoint.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(props.deleteItemLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.itemType": true,
+          "method.request.querystring.itemID": true,
+        },
+      }
+    );
+
+    const restoreItemEndpoint = sharedResource.addResource("restore");
+    restoreItemEndpoint.addMethod(
+      "PATCH",
+      new apigateway.LambdaIntegration(props.restoreItemLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.itemType": true,
+          "method.request.querystring.itemID": true,
+        },
       }
     );
 

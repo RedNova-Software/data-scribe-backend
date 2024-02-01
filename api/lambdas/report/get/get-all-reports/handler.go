@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -22,7 +23,26 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	reports, err := util.GetAllReports(userID)
+	deletedOnlyString := request.QueryStringParameters["deletedOnly"]
+
+	if deletedOnlyString == "" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Bad Request: Missing deletedOnly from query string.",
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
+	deletedOnlyBool, err := strconv.ParseBool(deletedOnlyString)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Bad Request: deletedOnly query param must be 'true' or 'false'.",
+			Headers:    constants.CorsHeaders,
+		}, nil
+	}
+
+	reports, err := util.GetAllReports(userID, deletedOnlyBool)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return events.APIGatewayProxyResponse{

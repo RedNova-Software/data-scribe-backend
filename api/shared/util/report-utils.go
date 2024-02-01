@@ -93,6 +93,10 @@ func GetReport(reportID string, userID string) (*models.Report, error) {
 		return nil, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
 	}
 
+	if report.IsDeleted {
+		return nil, fmt.Errorf("report is deleted. cannot fetch")
+	}
+
 	// Ensure all nil parts and nil sections are returned as an empty list
 	// This is an annoyance due to the way dynamodb marshalls empty lists
 	// When we create an empty report, the parts will be null in dynamodb.
@@ -104,7 +108,7 @@ func GetReport(reportID string, userID string) (*models.Report, error) {
 	return report, nil
 }
 
-func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
+func GetAllReports(userID string, deletedReportsOnly bool) ([]*models.ReportMetadata, error) {
 	tableName := os.Getenv(constants.ReportTable)
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -120,14 +124,26 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 		constants.CityField,
 		constants.OwnedByUserIDField,
 		constants.SharedWithIDsField,
-		constants.CreatedField,
-		constants.LastModifiedField,
+		constants.CreatedAtField,
+		constants.LastModifiedAtField,
+		constants.IsDeletedField,
 	}
 
 	projectionExpression := strings.Join(fields, ", ")
 
-	// Use FilterExpression for nested attributes
-	filterExpression := constants.OwnedByUserIDField + " = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)"
+	var filterExpression string
+
+	if deletedReportsOnly {
+		filterExpression =
+			constants.OwnedByUserIDField +
+				" = :userID AND " +
+				constants.IsDeletedField + " = :isDeleted"
+	} else {
+		filterExpression = "(" +
+			constants.OwnedByUserIDField +
+			" = :userID OR contains(" + constants.SharedWithIDsField + ", :userID)) AND " +
+			constants.IsDeletedField + " = :isDeleted"
+	}
 
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
@@ -135,6 +151,9 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":userID": {
 				S: aws.String(userID),
+			},
+			":isDeleted": {
+				BOOL: aws.Bool(deletedReportsOnly),
 			},
 		},
 		ProjectionExpression: aws.String(projectionExpression),
@@ -172,58 +191,6 @@ func GetAllReports(userID string) ([]*models.ReportMetadata, error) {
 	}
 
 	return reports, nil
-}
-
-func SetReportShared(reportID string, userIDs []string, userID string) error {
-
-	isOwner, err := isUserOwnerOfItem(constants.Report, reportID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error checking if user is owner of report: %v", err)
-	}
-
-	if !isOwner {
-		return fmt.Errorf("user is not the owner of this report. cannot share with others")
-	}
-
-	tableName := os.Getenv(constants.ReportTable)
-
-	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
-	if err != nil {
-		return fmt.Errorf("error getting dynamodb client: %v", err)
-	}
-
-	report, err := GetReport(reportID, userID)
-
-	if err != nil {
-		return fmt.Errorf("error getting report from DynamoDB: %v", err)
-	}
-
-	if report == nil {
-		return fmt.Errorf("report not found: %v", err)
-	}
-
-	// Eventually you could refactor this into checking dynamodb first so we don't incur costs for loading data, but this should never be called
-	// so it's not worth it right now.
-
-	report.SharedWithIDs = userIDs
-
-	av, err := dynamodbattribute.MarshalMap(report)
-	if err != nil {
-		return err
-	}
-
-	updateInput := &dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String(tableName),
-	}
-
-	_, err = dynamoDBClient.PutItem(updateInput)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
@@ -268,9 +235,9 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 			UserID:       userID,
 			UserNickName: ownerNickName,
 		},
-		SharedWithIDs: make([]string, 0),
-		Created:       GetCurrentTime(),
-		LastModified:  GetCurrentTime(),
+		SharedWithIDs:  make([]string, 0),
+		CreatedAt:      GetCurrentTime(),
+		LastModifiedAt: GetCurrentTime(),
 		// Create empty parts for filling
 		Parts: make([]models.TemplatePart, 0),
 	}
@@ -375,7 +342,7 @@ func SetReportCSV(reportID, userID string) (string, error) {
 				S: aws.String(reportID),
 			},
 		},
-		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedField + " = :lm"),
+		UpdateExpression: aws.String("set " + constants.CSVIDField + " = :s3k, " + constants.LastModifiedAtField + " = :lm"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":s3k": {
 				S: aws.String(fileS3Key),

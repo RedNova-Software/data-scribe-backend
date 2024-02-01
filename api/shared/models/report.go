@@ -51,25 +51,27 @@ type ModelOutput struct {
 }
 
 type Report struct {
-	ReportID      string
-	ReportType    string
-	Title         string
-	City          string
-	Parts         []ReportPart
-	OwnedBy       User
-	SharedWithIDs []string
-	Created       int64
-	LastModified  int64
-	CSVID         string
+	ReportID       string
+	ReportType     string
+	Title          string
+	City           string
+	Parts          []ReportPart
+	OwnedBy        User
+	SharedWithIDs  []string
+	CreatedAt      int64
+	LastModifiedAt int64
+	IsDeleted      bool
+	DeleteAt       int64
+	CSVID          string
 }
 
 type ReportMetadata struct {
-	ReportID     string
-	ReportType   string
-	Title        string
-	City         string
-	OwnedBy      User
-	SharedWith   []User
-	Created      int64
-	LastModified int64
+	ReportID       string
+	ReportType     string
+	Title          string
+	City           string
+	OwnedBy        User
+	SharedWith     []User
+	CreatedAt      int64
+	LastModifiedAt int64
 }

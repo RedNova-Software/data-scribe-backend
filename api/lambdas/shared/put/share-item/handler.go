@@ -45,18 +45,8 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ItemType == constants.Report {
-		err = util.SetReportShared(req.ItemID, req.UserIDs, userID)
-
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Headers:    constants.CorsHeaders,
-				Body:       "Internal Server Error: " + err.Error(),
-			}, nil
-		}
-	} else if req.ItemType == constants.Template {
-		err = util.SetTemplateShared(req.ItemID, req.UserIDs, userID)
+	if req.ItemType == constants.Report || req.ItemType == constants.Template {
+		err = util.SetItemShared(req.ItemType, req.ItemID, req.UserIDs, userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -69,7 +59,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: itemType must be 'report' or 'template' ",
+			Body:       "Bad Request: itemType must be 'report' or 'template'",
 		}, nil
 	}
 
