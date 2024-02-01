@@ -33,7 +33,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	if itemType == constants.Report || itemType == constants.Template {
-		err = util.SetItemDeleted(itemType, itemID, true, userID)
+		err = util.SetItemDeleted(itemType, itemID, false, userID)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,

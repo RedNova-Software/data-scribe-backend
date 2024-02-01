@@ -151,7 +151,7 @@ func UpdateItemTitle(itemType constants.ItemType, itemID, newTitle string, userI
 	return nil
 }
 
-func SetItemDeleted(itemType constants.ItemType, itemID, userID string) error {
+func SetItemDeleted(itemType constants.ItemType, itemID string, delete bool, userID string) error {
 
 	isAuthorized, err := isUserOwnerOfItem(itemType, itemID, userID)
 
@@ -183,7 +183,17 @@ func SetItemDeleted(itemType constants.ItemType, itemID, userID string) error {
 	}
 
 	// Set deletion time to 30 days from now
+
 	deletionTime := time.Now().Add(30 * 24 * time.Hour).Unix()
+	var deletionTimeString *string
+
+	if delete {
+		deletionTimeString = aws.String(strconv.FormatInt(deletionTime, 10))
+	} else {
+		deletionTimeString = nil
+	}
+
+	strconv.FormatInt(deletionTime, 10)
 
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String(tableName),
@@ -195,10 +205,10 @@ func SetItemDeleted(itemType constants.ItemType, itemID, userID string) error {
 		UpdateExpression: aws.String("set " + constants.IsDeletedField + " = :isDel, " + constants.DeleteAtField + " = :delAt"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":isDel": {
-				BOOL: aws.Bool(true),
+				BOOL: aws.Bool(delete),
 			},
 			":delAt": {
-				N: aws.String(strconv.FormatInt(deletionTime, 10)),
+				N: deletionTimeString,
 			},
 		},
 	}
