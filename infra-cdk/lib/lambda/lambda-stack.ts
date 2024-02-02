@@ -417,8 +417,8 @@ export class LambdasStack extends cdk.Stack {
       },
       memorySize: 1024,
     });
-    props.reportTable.grantReadWriteData(this.deleteItemLambda);
-    props.templateTable.grantReadWriteData(this.deleteItemLambda);
+    props.reportTable.grantReadWriteData(this.restoreItemLambda);
+    props.templateTable.grantReadWriteData(this.restoreItemLambda);
 
     // --------------------------------------------------------- //
 
