@@ -23,6 +23,7 @@ const cognitoStack = new CognitoUserPoolStack(app, "CognitoStack", {
 
 const s3BucketStack = new S3BucketStack(app, "CSVBucketStack", {
   env: env, // Specify the account and region
+  reportTable: dynamoDBStack.reportTable,
 });
 
 const lambdaFunctionsStack = new LambdasStack(app, "LambdaStack", {

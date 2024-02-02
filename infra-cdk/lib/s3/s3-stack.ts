@@ -4,12 +4,18 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as s3n from "aws-cdk-lib/aws-s3-notifications";
+import type * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import path = require("path");
+
+interface S3BucketStackProps extends cdk.StackProps {
+  reportTable: dynamodb.Table;
+}
 
 export class S3BucketStack extends cdk.Stack {
   public readonly csvBucket: s3.Bucket;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: S3BucketStackProps) {
     super(scope, id, props);
 
     // Define the S3 bucket
@@ -32,6 +38,32 @@ export class S3BucketStack extends cdk.Stack {
       allowedOrigins: ["*"],
       allowedHeaders: ["Content-Type"],
     });
+
+    // A lambda to process a new CSV file when its uploaded
+    // It will set the columns and unique columns values in a Report
+    const readCsvColumnsLambda = new lambda.Function(
+      this,
+      "ReadCsvColumnsLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/read-csv-columns")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+          S3_BUCKET_NAME: this.csvBucket.bucketName,
+        },
+        memorySize: 1024,
+      }
+    );
+    props.reportTable.grantReadWriteData(readCsvColumnsLambda);
+    this.csvBucket.grantRead(readCsvColumnsLambda);
+
+    this.csvBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(readCsvColumnsLambda)
+    );
 
     // Optional: Output the bucket name
     new cdk.CfnOutput(this, "BucketName", { value: this.csvBucket.bucketName });
