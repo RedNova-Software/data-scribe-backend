@@ -11,10 +11,28 @@ type TemplateTextOutput struct {
 	Input string
 }
 
+type TemplateChartOutput struct {
+	Title         string
+	XAxisTitle    string
+	YAxisTitle    string // Optional
+	CartesianGrid bool
+
+	Config TwoDimConfig
+}
+
+type TemplateCSVData struct {
+	Label        string
+	Type         CSVDataType
+	ConfigOneDim OneDimConfig
+	ConfigTwoDim TwoDimConfig
+}
+
 type TemplateSection struct {
-	Title       string
-	Questions   []TemplateQuestion
-	TextOutputs []TemplateTextOutput
+	Title        string
+	Questions    []TemplateQuestion
+	CSVData      []TemplateCSVData
+	TextOutputs  []TemplateTextOutput
+	ChartOutputs []TemplateChartOutput
 }
 
 type TemplatePart struct {
@@ -32,6 +50,8 @@ type Template struct {
 	CreatedAt      int64
 	IsDeleted      bool
 	DeleteAt       int64
+
+	CSVColumns map[string]string
 }
 
 type TemplateMetadata struct {

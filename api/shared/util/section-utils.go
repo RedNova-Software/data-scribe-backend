@@ -207,6 +207,8 @@ func UpdateSectionInReport(
 	newSectionTitle string,
 	newQuestions []models.ReportQuestion,
 	newTextOutputs []models.ReportTextOutput,
+	newCSVData []models.ReportCSVData,
+	newChartOutputs []models.ReportChartOutput,
 	deleteGeneratedOutput bool,
 	userID string,
 ) error {
@@ -235,7 +237,7 @@ func UpdateSectionInReport(
 	// If deleteGeneratedOutput is true or the type is not Generator, update the TextOutputs as is
 	if deleteGeneratedOutput {
 		updatedSection.TextOutputs = newTextOutputs
-		// Rest output generated since we're wiping all outputs
+		// Reset output generated since we're wiping all outputs
 		updatedSection.OutputGenerated = false
 	} else {
 		// Otherwise, update selectively
@@ -250,6 +252,10 @@ func UpdateSectionInReport(
 			updatedSection.TextOutputs[i] = newTextOutput
 		}
 	}
+
+	// Update csv data and chart outputs
+	updatedSection.CSVData = newCSVData
+	updatedSection.ChartOutputs = newChartOutputs
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInReport(report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
@@ -289,6 +295,8 @@ func UpdateSectionInTemplate(
 	newSectionTitle string,
 	newQuestions []models.TemplateQuestion,
 	newTextOutputs []models.TemplateTextOutput,
+	newCSVData []models.TemplateCSVData,
+	newChartOutputs []models.TemplateChartOutput,
 	userID string,
 ) error {
 	tableName := os.Getenv(constants.TemplateTable)
@@ -313,6 +321,8 @@ func UpdateSectionInTemplate(
 	updatedSection.Title = newSectionTitle
 	updatedSection.Questions = newQuestions
 	updatedSection.TextOutputs = newTextOutputs
+	updatedSection.CSVData = newCSVData
+	updatedSection.ChartOutputs = newChartOutputs
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInTemplate(template, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
