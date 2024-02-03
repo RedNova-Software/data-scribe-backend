@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { type Construct } from "constructs";
-import { DynamoDBTable, Tables } from "../constants/dynamodb-constants";
+import { DynamoDBTable, TableFields } from "../constants/dynamodb-constants";
 
 export class DynamoDBStack extends cdk.Stack {
   public readonly reportTable: dynamodb.Table;
@@ -12,21 +12,30 @@ export class DynamoDBStack extends cdk.Stack {
 
     this.reportTable = new dynamodb.Table(this, DynamoDBTable.ReportTable, {
       partitionKey: {
-        name: Tables.ReportID,
+        name: TableFields.ReportID,
         type: dynamodb.AttributeType.STRING,
       },
-      timeToLiveAttribute: Tables.DeleteAt,
+      timeToLiveAttribute: TableFields.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       deletionProtection: true,
     });
 
-    this.templateTable = new dynamodb.Table(this, DynamoDBTable.TemplateTable, {
+    this.reportTable.addGlobalSecondaryIndex({
+      indexName: TableFields.CSVID,
       partitionKey: {
-        name: Tables.TemplateID,
+        name: TableFields.CSVID,
         type: dynamodb.AttributeType.STRING,
       },
-      timeToLiveAttribute: Tables.DeleteAt,
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    this.templateTable = new dynamodb.Table(this, DynamoDBTable.TemplateTable, {
+      partitionKey: {
+        name: TableFields.TemplateID,
+        type: dynamodb.AttributeType.STRING,
+      },
+      timeToLiveAttribute: TableFields.DeleteAt,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       deletionProtection: true,

@@ -73,7 +73,7 @@ type Report struct {
 	DeleteAt       int64
 	CSVID          string
 
-	CSVColumns map[string][]string
+	CSVColumnsS3Key string
 }
 
 type ReportMetadata struct {

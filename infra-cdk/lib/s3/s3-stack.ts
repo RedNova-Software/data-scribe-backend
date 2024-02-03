@@ -14,13 +14,20 @@ interface S3BucketStackProps extends cdk.StackProps {
 
 export class S3BucketStack extends cdk.Stack {
   public readonly csvBucket: s3.Bucket;
+  public readonly columnDataBucket: s3.Bucket;
 
   constructor(scope: Construct, id: string, props: S3BucketStackProps) {
     super(scope, id, props);
 
-    // Define the S3 bucket
     this.csvBucket = new s3.Bucket(this, "CsvBucket", {
-      bucketName: "scribe-csv-bucket", // Replace with your desired bucket name
+      bucketName: "scribe-csv-bucket",
+      publicReadAccess: false,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
+
+    this.columnDataBucket = new s3.Bucket(this, "ColumnDataBucket", {
+      bucketName: "scribe-column-data-bucket",
       publicReadAccess: false,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -52,13 +59,15 @@ export class S3BucketStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
-          S3_BUCKET_NAME: this.csvBucket.bucketName,
+          CSV_BUCKET_NAME: this.csvBucket.bucketName,
+          COLUMN_DATA_BUCKET_NAME: this.columnDataBucket.bucketName,
         },
         memorySize: 1024,
       }
     );
     props.reportTable.grantReadWriteData(readCsvColumnsLambda);
     this.csvBucket.grantRead(readCsvColumnsLambda);
+    this.columnDataBucket.grantReadWrite(readCsvColumnsLambda);
 
     this.csvBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,

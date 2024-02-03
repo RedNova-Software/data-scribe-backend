@@ -157,7 +157,7 @@ export class LambdasStack extends cdk.Stack {
       memorySize: 1024,
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
-        S3_BUCKET_NAME: props.csvBucket.bucketName,
+        CSV_BUCKET_NAME: props.csvBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(30),
     });

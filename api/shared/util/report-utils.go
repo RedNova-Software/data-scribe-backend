@@ -324,7 +324,7 @@ func SetReportCSV(reportID, userID string) (string, error) {
 	}
 
 	fileS3Key := uuid.New().String() + ".csv"
-	preSignedURL, err := GeneratePresignedURL(os.Getenv(constants.S3BucketName), fileS3Key, "text/csv", 3*time.Minute)
+	preSignedURL, err := GeneratePresignedURL(os.Getenv(constants.CsvBucketName), fileS3Key, "text/csv", 3*time.Minute)
 
 	if err != nil {
 		return "", fmt.Errorf("error generating presigned url: %v", err)

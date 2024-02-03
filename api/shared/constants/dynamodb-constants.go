@@ -38,8 +38,8 @@ const (
 )
 
 const (
-	CSVIDField      string = "CSVID"
-	CSVColumnsField string = "CSVColumns"
+	CSVIDField           string = "CSVID"
+	CSVColumnsS3KeyField string = "CSVColumnsS3Key"
 )
 
 const (
