@@ -25,7 +25,7 @@ func Handler(ctx context.Context, s3Event events.S3Event) {
 		}
 
 		// Process the CSV file
-		uniqueValues, err := util.UniqueValuesInCSV(file)
+		uniqueValues, err := util.GetUniqueColumnValuesMapInCSV(file)
 		if err != nil {
 			fmt.Println("Error processing CSV file:", err)
 			return
@@ -35,6 +35,13 @@ func Handler(ctx context.Context, s3Event events.S3Event) {
 		err = util.UpdateReportCsvColumns(key, uniqueValues)
 		if err != nil {
 			fmt.Println("Error updating DynamoDB:", err)
+			return
+		}
+
+		// This will let the polling function know that the csv has been updated successfully
+		err = util.SetOperationCompleted(key)
+		if err != nil {
+			fmt.Println("Error setting operation completed:", err)
 			return
 		}
 	}

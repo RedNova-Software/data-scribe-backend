@@ -6,6 +6,7 @@ import { DynamoDBTable, TableFields } from "../constants/dynamodb-constants";
 export class DynamoDBStack extends cdk.Stack {
   public readonly reportTable: dynamodb.Table;
   public readonly templateTable: dynamodb.Table;
+  public readonly operationTable: dynamodb.Table;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -40,5 +41,20 @@ export class DynamoDBStack extends cdk.Stack {
       pointInTimeRecovery: true,
       deletionProtection: true,
     });
+
+    // This table stores ongoing operations for polling functions to check
+    this.operationTable = new dynamodb.Table(
+      this,
+      DynamoDBTable.OperationsTable,
+      {
+        partitionKey: {
+          name: TableFields.OperationID,
+          type: dynamodb.AttributeType.STRING,
+        },
+        timeToLiveAttribute: TableFields.DeleteAt,
+        billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+        deletionProtection: true,
+      }
+    );
   }
 }

@@ -46,3 +46,8 @@ const (
 	IsDeletedField string = "IsDeleted"
 	DeleteAtField  string = "DeleteAt"
 )
+
+const (
+	OperationIDField        string = "OperationID"
+	OperationCompletedField string = "Completed"
+)

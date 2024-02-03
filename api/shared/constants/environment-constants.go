@@ -1,8 +1,9 @@
 package constants
 
 const (
-	ReportTable   string = "REPORT_TABLE"
-	TemplateTable string = "TEMPLATE_TABLE"
+	ReportTable    string = "REPORT_TABLE"
+	TemplateTable  string = "TEMPLATE_TABLE"
+	OperationTable string = "OPERATION_TABLE"
 )
 
 const (

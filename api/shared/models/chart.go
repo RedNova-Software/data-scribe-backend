@@ -58,3 +58,5 @@ const (
 	Pie     ChartType = "Pie"
 	Radar   ChartType = "Radar"
 )
+
+type CsvDataColumnUniqueValuesMap map[string][]string

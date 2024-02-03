@@ -307,27 +307,27 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 	return nil
 }
 
-func SetReportCSV(reportID, userID string) (string, error) {
+func SetReportCSV(reportID, userID string) (string, string, error) {
 	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
 
 	if err != nil {
-		return "", fmt.Errorf("error getting authentication status for report: %v", err)
+		return "", "", fmt.Errorf("error getting authentication status for report: %v", err)
 	}
 
 	if !isAuthorized {
-		return "", fmt.Errorf("user is not authorized for report")
+		return "", "", fmt.Errorf("user is not authorized for report")
 	}
 
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 	if err != nil {
-		return "", fmt.Errorf("error getting dynamodb client: %v", err)
+		return "", "", fmt.Errorf("error getting dynamodb client: %v", err)
 	}
 
 	fileS3Key := uuid.New().String() + ".csv"
 	preSignedURL, err := GeneratePresignedURL(os.Getenv(constants.CsvBucketName), fileS3Key, "text/csv", 3*time.Minute)
 
 	if err != nil {
-		return "", fmt.Errorf("error generating presigned url: %v", err)
+		return "", "", fmt.Errorf("error generating presigned url: %v", err)
 	}
 
 	tableName := os.Getenv(constants.ReportTable)
@@ -353,13 +353,21 @@ func SetReportCSV(reportID, userID string) (string, error) {
 		},
 	}
 
+	// Create an operation that will be used by a polling function to check
+	// when the whole upload process is complete
+	err = CreateOperation(fileS3Key)
+
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create operation: %v", err)
+	}
+
 	// Update the report in DynamoDB
 	_, err = dynamoDBClient.UpdateItem(input)
 	if err != nil {
-		return "", fmt.Errorf("failed to update item: %v", err)
+		return "", "", fmt.Errorf("failed to update item: %v", err)
 	}
 
-	return preSignedURL, nil
+	return preSignedURL, fileS3Key, nil
 }
 
 func ensureNonNullReportFields(report *models.Report) {
@@ -396,6 +404,54 @@ func ensureNonNullReportFields(report *models.Report) {
 			}
 		}
 	}
+}
+
+// GetReportCsvColumnsS3Key fetches the CSVColumnsS3Key for a given reportID from DynamoDB
+func GetReportCsvColumnsS3Key(reportID, userID string) (string, error) {
+	isAuthorized, err := isUserAuthorizedForItem(constants.Report, reportID, userID)
+
+	if err != nil {
+		return "", fmt.Errorf("error getting authentication status for report: %v", err)
+	}
+
+	if !isAuthorized {
+		return "", fmt.Errorf("user is not authorized for report")
+	}
+
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+	if err != nil {
+		return "", fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	// Specify the table name and reportID as the key
+	tableName := os.Getenv(constants.ReportTable)
+	result, err := dynamoDBClient.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			constants.ReportIDField: {
+				S: aws.String(reportID),
+			},
+		},
+		ProjectionExpression: aws.String(constants.CSVColumnsS3KeyField),
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to get item: %v", err)
+	}
+
+	// Check if the item is found
+	if result.Item == nil {
+		return "", fmt.Errorf("report not found")
+	}
+
+	// Unmarshal the result into the Report struct
+	var report models.Report
+	err = dynamodbattribute.UnmarshalMap(result.Item, &report)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal DynamoDB item to Report: %v", err)
+	}
+
+	return report.CSVColumnsS3Key, nil
 }
 
 func ensureNonNullReportMetadataFields(report *models.ReportMetadata) {

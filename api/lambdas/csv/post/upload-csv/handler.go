@@ -17,6 +17,7 @@ type UploadCsvRequest struct {
 
 type UploadCsvResponse struct {
 	PreSignedURL string
+	OperationID  string
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -47,7 +48,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	preSignedURL, err := util.SetReportCSV(req.ReportID, userID)
+	preSignedURL, operationID, err := util.SetReportCSV(req.ReportID, userID)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -59,6 +60,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Marshal the report into JSON
 	response := UploadCsvResponse{
 		PreSignedURL: preSignedURL,
+		OperationID:  operationID,
 	}
 
 	responseJSON, err := json.Marshal(response)

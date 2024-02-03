@@ -2,6 +2,7 @@ package util
 
 import (
 	"api/shared/constants"
+	"api/shared/models"
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
@@ -65,7 +66,7 @@ func GetCSVFileHandle(s3Key string) (*os.File, error) {
 
 // uniqueValuesInCSV takes theCSV file and returns a map where keys are column names
 // and values are slices of unique values in those columns.
-func UniqueValuesInCSV(file *os.File) (map[string][]string, error) {
+func GetUniqueColumnValuesMapInCSV(file *os.File) (models.CsvDataColumnUniqueValuesMap, error) {
 	reader := csv.NewReader(file)
 	headers, err := reader.Read()
 	if err != nil {
@@ -95,7 +96,7 @@ func UniqueValuesInCSV(file *os.File) (map[string][]string, error) {
 	}
 
 	// Convert sets to slices
-	result := make(map[string][]string)
+	result := make(models.CsvDataColumnUniqueValuesMap)
 	for header, valuesSet := range uniqueValuesMap {
 		for value := range valuesSet {
 			result[header] = append(result[header], value)
@@ -105,7 +106,7 @@ func UniqueValuesInCSV(file *os.File) (map[string][]string, error) {
 	return result, nil
 }
 
-func UpdateReportCsvColumns(csvid string, csvColumns map[string][]string) error {
+func UpdateReportCsvColumns(csvid string, csvColumns models.CsvDataColumnUniqueValuesMap) error {
 	// Serialize csvColumns to JSON
 	jsonData, err := json.Marshal(csvColumns)
 	if err != nil {
@@ -125,6 +126,38 @@ func UpdateReportCsvColumns(csvid string, csvColumns map[string][]string) error 
 	}
 
 	return nil
+}
+
+// getJSONFromS3 fetches a JSON object from S3 and unmarshals it into a struct.
+func GetColumnValuesMapFromS3(s3Key string) (*models.CsvDataColumnUniqueValuesMap, error) {
+	s3Client, err := GetS3Client(constants.USEast2)
+	if err != nil {
+		return nil, err
+	}
+
+	// Request the file
+	result, err := s3Client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv(constants.ColumnDataBucketName)),
+		Key:    aws.String(s3Key),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object: %v", err)
+	}
+	defer result.Body.Close()
+
+	// Read the S3 object's body
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read object body: %v", err)
+	}
+
+	// Unmarshal the JSON into the Report struct
+	var columnValuesMap models.CsvDataColumnUniqueValuesMap
+	if err := json.Unmarshal(body, &columnValuesMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+	}
+
+	return &columnValuesMap, nil
 }
 
 func uploadColumnDataToS3(s3Key string, data []byte) (string, error) {

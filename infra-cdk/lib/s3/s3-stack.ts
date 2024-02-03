@@ -10,6 +10,7 @@ import path = require("path");
 
 interface S3BucketStackProps extends cdk.StackProps {
   reportTable: dynamodb.Table;
+  operationTable: dynamodb.Table;
 }
 
 export class S3BucketStack extends cdk.Stack {
@@ -59,6 +60,7 @@ export class S3BucketStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
+          OPERATION_TABLE: props.operationTable.tableName,
           CSV_BUCKET_NAME: this.csvBucket.bucketName,
           COLUMN_DATA_BUCKET_NAME: this.columnDataBucket.bucketName,
         },
@@ -66,6 +68,7 @@ export class S3BucketStack extends cdk.Stack {
       }
     );
     props.reportTable.grantReadWriteData(readCsvColumnsLambda);
+    props.operationTable.grantWriteData(readCsvColumnsLambda);
     this.csvBucket.grantRead(readCsvColumnsLambda);
     this.columnDataBucket.grantReadWrite(readCsvColumnsLambda);
 
