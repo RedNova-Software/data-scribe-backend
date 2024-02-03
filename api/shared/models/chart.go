@@ -16,7 +16,15 @@ const (
 	TwoDim CSVDataType = "TwoDim"
 )
 
-type OneDimConfig struct {
+type TemplateOneDimConfig struct {
+	Description string
+
+	OperationType ChartOperation
+
+	AggregateValueLabel string
+}
+
+type ReportOneDimConfig struct {
 	Column string // The actual column in the csv
 
 	Description string
@@ -28,8 +36,25 @@ type OneDimConfig struct {
 	AcceptedValues []string // Optional
 }
 
-type TwoDimConfig struct {
+type TemplateTwoDimConfig struct {
 	IndependentColumn               string
 	IndependantColumnAcceptedValues []string // Optional
-	DependentColumns                []OneDimConfig
+	DependentColumns                []TemplateOneDimConfig
 }
+
+type ReportTwoDimConfig struct {
+	IndependentColumn               string
+	IndependantColumnAcceptedValues []string // Optional
+	DependentColumns                []ReportOneDimConfig
+}
+
+type ChartType string
+
+const (
+	Line    ChartType = "Line"
+	Area    ChartType = "Area"
+	Bar     ChartType = "Bar"
+	Scatter ChartType = "Scatter"
+	Pie     ChartType = "Pie"
+	Radar   ChartType = "Radar"
+)

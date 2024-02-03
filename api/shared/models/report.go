@@ -27,21 +27,22 @@ type ReportTextOutput struct {
 
 type ReportChartOutput struct {
 	Title         string
+	Type          ChartType
 	XAxisTitle    string
 	YAxisTitle    string // Optional
 	CartesianGrid bool
 
-	Config TwoDimConfig
+	Config ReportTwoDimConfig
 
 	Results []map[string]interface{}
 }
 
 type ReportCSVData struct {
-	Label        string
-	Type         CSVDataType
-	ConfigOneDim OneDimConfig
-	ConfigTwoDim TwoDimConfig
-	Result       string
+	Label                    string
+	ConfigOneDim             ReportOneDimConfig
+	GroupColumn              string
+	GroupColumnAcceptedValue string
+	Result                   string
 }
 
 type ReportSection struct {

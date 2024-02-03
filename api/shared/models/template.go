@@ -13,18 +13,17 @@ type TemplateTextOutput struct {
 
 type TemplateChartOutput struct {
 	Title         string
+	Type          ChartType
 	XAxisTitle    string
 	YAxisTitle    string // Optional
 	CartesianGrid bool
 
-	Config TwoDimConfig
+	Config TemplateTwoDimConfig
 }
 
 type TemplateCSVData struct {
 	Label        string
-	Type         CSVDataType
-	ConfigOneDim OneDimConfig
-	ConfigTwoDim TwoDimConfig
+	ConfigOneDim TemplateOneDimConfig
 }
 
 type TemplateSection struct {
