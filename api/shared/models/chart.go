@@ -37,12 +37,14 @@ type ReportOneDimConfig struct {
 }
 
 type TemplateTwoDimConfig struct {
+	IndependentColumnLabel          string
 	IndependentColumn               string
 	IndependantColumnAcceptedValues []string // Optional
 	DependentColumns                []TemplateOneDimConfig
 }
 
 type ReportTwoDimConfig struct {
+	IndependentColumnLabel          string
 	IndependentColumn               string
 	IndependantColumnAcceptedValues []string // Optional
 	DependentColumns                []ReportOneDimConfig
