@@ -406,8 +406,8 @@ func SetReportSectionResponses(reportID string,
 	if section.ChartOutputs != nil {
 		for i := range section.ChartOutputs {
 			section.ChartOutputs[i].Config.IndependentColumn = chartOutputResponses[i].IndependentColumn
-			section.ChartOutputs[i].Config.IndependantColumnAcceptedValues = chartOutputResponses[i].IndependantColumnAcceptedValues
-			section.ChartOutputs[i].Config.IndependantColumnAcceptedValues = chartOutputResponses[i].IndependantColumnAcceptedValues
+			section.ChartOutputs[i].Config.IndependentColumnAcceptedValues = chartOutputResponses[i].IndependentColumnAcceptedValues
+			section.ChartOutputs[i].Config.IndependentColumnAcceptedValues = chartOutputResponses[i].IndependentColumnAcceptedValues
 
 			// Update the dependent columns
 			for j := range section.ChartOutputs[i].Config.DependentColumns {

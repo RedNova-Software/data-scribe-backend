@@ -11,7 +11,7 @@ type OneDimConfigResponse struct {
 
 type ChartOutputResponse struct {
 	IndependentColumn               string
-	IndependantColumnAcceptedValues []string
+	IndependentColumnAcceptedValues []string
 
 	DependentColumns []OneDimConfigResponse
 }
