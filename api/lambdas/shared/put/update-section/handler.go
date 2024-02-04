@@ -27,14 +27,14 @@ type ReportSectionContents struct {
 	Questions   []models.ReportQuestion    `json:"questions"`
 	TextOutputs []models.ReportTextOutput  `json:"textOutputs"`
 	CSVData     []models.ReportCSVData     `json:"csvData"`
-	ChartOuput  []models.ReportChartOutput `json:"chartOutput"`
+	ChartOuput  []models.ReportChartOutput `json:"chartOutputs"`
 }
 
 type TemplateSectionContents struct {
 	Questions   []models.TemplateQuestion    `json:"questions"`
 	TextOutputs []models.TemplateTextOutput  `json:"textOutputs"`
 	CSVData     []models.TemplateCSVData     `json:"csvData"`
-	ChartOuput  []models.TemplateChartOutput `json:"chartOutput"`
+	ChartOuput  []models.TemplateChartOutput `json:"chartOutputs"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
