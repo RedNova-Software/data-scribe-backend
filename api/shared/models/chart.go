@@ -17,30 +17,28 @@ const (
 )
 
 type TemplateOneDimConfig struct {
+	AggregateValueLabel string
+
 	Description string
 
 	OperationType ChartOperation
-
-	AggregateValueLabel string
 }
 
 type ReportOneDimConfig struct {
+	AggregateValueLabel string // The name of the label in the output
+
 	Column string // The actual column in the csv
 
 	Description string
 
 	OperationType ChartOperation
 
-	AggregateValueLabel string // The name of the label in the output
-
 	AcceptedValues []string // Optional
 }
 
 type TemplateTwoDimConfig struct {
-	IndependentColumnLabel          string
-	IndependentColumn               string
-	IndependantColumnAcceptedValues []string // Optional
-	DependentColumns                []TemplateOneDimConfig
+	IndependentColumnLabel string
+	DependentColumns       []TemplateOneDimConfig
 }
 
 type ReportTwoDimConfig struct {
