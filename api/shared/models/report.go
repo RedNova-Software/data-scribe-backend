@@ -1,10 +1,5 @@
 package models
 
-type Answer struct {
-	QuestionIndex int
-	Answer        string
-}
-
 type ReportQuestion struct {
 	Label    string
 	Question string

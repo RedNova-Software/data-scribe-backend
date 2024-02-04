@@ -212,6 +212,7 @@ func UpdateSectionInReport(
 	deleteGeneratedOutput bool,
 	userID string,
 ) error {
+
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -353,6 +354,85 @@ func UpdateSectionInTemplate(
 
 }
 
+func SetReportSectionResponses(reportID string,
+	partIndex int,
+	sectionIndex int,
+	questionAnswers []models.Answer,
+	csvDataResponses []models.CsvDataResponse,
+	chartOutputResponses []models.ChartOutputResponse,
+	userID string) error {
+
+	tableName := os.Getenv(constants.ReportTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	report, err := GetReport(reportID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	section, err := GetReportSection(report, partIndex, sectionIndex)
+
+	if err != nil {
+		return fmt.Errorf("error getting section: %v", err)
+	}
+
+	// First, update question answers
+	if section.Questions != nil {
+		for i := range section.Questions {
+			section.Questions[i].Answer = questionAnswers[i].Answer
+		}
+	}
+
+	// Next, update csv data responses
+	if section.CSVData != nil {
+		for i := range section.CSVData {
+			section.CSVData[i].GroupColumn = csvDataResponses[i].GroupColumn
+			section.CSVData[i].GroupColumnAcceptedValue = csvDataResponses[i].GroupColumnAcceptedValue
+			section.CSVData[i].ConfigOneDim.Column = csvDataResponses[i].DependentColumn.Column
+			section.CSVData[i].ConfigOneDim.AcceptedValues = csvDataResponses[i].DependentColumn.AcceptedValues
+		}
+	}
+
+	// Next, update chart output responses
+	if section.ChartOutputs != nil {
+		for i := range section.ChartOutputs {
+			section.ChartOutputs[i].Config.IndependentColumn = chartOutputResponses[i].IndependentColumn
+			section.ChartOutputs[i].Config.IndependantColumnAcceptedValues = chartOutputResponses[i].IndependantColumnAcceptedValues
+			section.ChartOutputs[i].Config.IndependantColumnAcceptedValues = chartOutputResponses[i].IndependantColumnAcceptedValues
+
+			// Update the dependent columns
+			for j := range section.ChartOutputs[i].Config.DependentColumns {
+				section.ChartOutputs[i].Config.DependentColumns[j].Column = chartOutputResponses[i].DependentColumns[j].Column
+				section.ChartOutputs[i].Config.DependentColumns[j].AcceptedValues = chartOutputResponses[i].DependentColumns[j].AcceptedValues
+			}
+		}
+	}
+
+	// Update last modified
+	report.LastModifiedAt = GetCurrentTime()
+
+	// Update the report in DynamoDB
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	return err
+}
+
 func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, generateAIOutput bool, userID string) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
@@ -413,21 +493,16 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 
 func GenerateSectionStaticText(section *models.ReportSection, answers []models.Answer) {
 	// Iterate over each answer
-	for _, answer := range answers {
-		// Find the matching question
-		question, err := GetReportQuestion(section.Questions, answer.QuestionIndex)
-		if err != nil {
-			continue // or handle the error as you see fit
-		}
+	for i, answer := range answers {
 
 		// Update question answer
-		question.Answer = answer.Answer
+		section.Questions[i].Answer = answer.Answer
 
 		// Generate static text
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Static {
 				// Assuming GenerateStaticText modifies textOutput in place
-				GenerateStaticText(&section.TextOutputs[i], question.Label, answer.Answer)
+				GenerateStaticText(&section.TextOutputs[i], section.Questions[i].Label, answer.Answer)
 			}
 		}
 	}
@@ -451,20 +526,14 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 	}
 
 	// Splice answers into prompts
-	for _, answer := range answers {
-		// Find the matching question
-		question, err := GetReportQuestion(section.Questions, answer.QuestionIndex)
-		if err != nil {
-			continue
-		}
+	for i, answer := range answers {
 
-		// Update question answer
-		question.Answer = answer.Answer
+		section.Questions[i].Answer = answer.Answer
 
 		// Generate the inputs with question answers spliced in
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Generator {
-				GenerateGeneratorInput(&section.TextOutputs[i], question.Label, answer.Answer)
+				GenerateGeneratorInput(&section.TextOutputs[i], section.Questions[i].Label, answer.Answer)
 			}
 		}
 	}

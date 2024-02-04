@@ -36,12 +36,10 @@ func mockStaticData() (*models.ReportSection, []models.Answer) {
 
 	answers := []models.Answer{
 		{
-			QuestionIndex: 0,
-			Answer:        "4",
+			Answer: "4",
 		},
 		{
-			QuestionIndex: 1,
-			Answer:        "Paris",
+			Answer: "Paris",
 		},
 	}
 
@@ -81,12 +79,10 @@ func mockGeneratorData() (*models.ReportSection, []models.Answer) {
 
 	answers := []models.Answer{
 		{
-			QuestionIndex: 0,
-			Answer:        "Blue",
+			Answer: "Blue",
 		},
 		{
-			QuestionIndex: 1,
-			Answer:        "Toronto",
+			Answer: "Toronto",
 		},
 	}
 

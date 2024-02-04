@@ -48,6 +48,7 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   uploadCSVLambda: lambdaFunctionsStack.uploadCSVLambda,
   getCSVUniqueColumnsMapLambda:
     lambdaFunctionsStack.getCSVUniqueColumnsMapLambda,
+  setSectionResponsesLambda: lambdaFunctionsStack.setSectionResponsesLambda,
 
   // Template Lambdas
   getTemplateByIDLambda: lambdaFunctionsStack.getTemplateByIDLambda,

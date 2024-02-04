@@ -25,6 +25,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly getAllReportTypesLambda: lambda.IFunction;
   public readonly uploadCSVLambda: lambda.IFunction;
   public readonly getCSVUniqueColumnsMapLambda: lambda.IFunction;
+  public readonly setSectionResponsesLambda: lambda.IFunction;
 
   // Template Lambas
   public readonly getTemplateByIDLambda: lambda.IFunction;
@@ -193,6 +194,24 @@ export class LambdasStack extends cdk.Stack {
     props.reportTable.grantReadWriteData(this.getCSVUniqueColumnsMapLambda);
     props.columnDataBucket.grantReadWrite(this.getCSVUniqueColumnsMapLambda);
     props.operationsTable.grantReadWriteData(this.getCSVUniqueColumnsMapLambda);
+
+    this.setSectionResponsesLambda = new lambda.Function(
+      this,
+      "SetSectionResponsesLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/set-section-responses")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        memorySize: 1024,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+    props.reportTable.grantReadWriteData(this.setSectionResponsesLambda);
 
     // --------------------------------------------------------- //
     // Template Lambdas

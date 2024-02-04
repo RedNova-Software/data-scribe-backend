@@ -16,6 +16,7 @@ interface GatewayStackProps extends cdk.StackProps {
   getAllReportTypesLambda: lambda.IFunction;
   uploadCSVLambda: lambda.IFunction;
   getCSVUniqueColumnsMapLambda: lambda.IFunction;
+  setSectionResponsesLambda: lambda.IFunction;
 
   // Template Lambas
   getTemplateByIDLambda: lambda.IFunction;
@@ -154,7 +155,7 @@ export class GatewayStack extends cdk.Stack {
     const generateSectionEndpoint =
       reportSectionsResource.addResource("generate");
     generateSectionEndpoint.addMethod(
-      "POST",
+      "PUT",
       new apigateway.LambdaIntegration(props.generateSectionLambda),
       {
         authorizer,
@@ -183,6 +184,17 @@ export class GatewayStack extends cdk.Stack {
         requestParameters: {
           "method.request.querystring.reportID": true,
         },
+      }
+    );
+
+    const setSectionResponsesEndpoint =
+      sharedSectionResource.addResource("responses");
+    setSectionResponsesEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.setSectionResponsesLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
 
