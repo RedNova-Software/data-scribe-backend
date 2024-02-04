@@ -229,6 +229,7 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 	// Create report metadata
 	newReport := &models.Report{
 		ReportID:   uuid.New().String(),
+		IsDeleted:  false,
 		Title:      reportTitle,
 		City:       reportCity,
 		ReportType: reportType,
@@ -240,7 +241,9 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 		CreatedAt:      GetCurrentTime(),
 		LastModifiedAt: GetCurrentTime(),
 		// Create empty parts for filling
-		Parts: make([]models.ReportPart, 0),
+		Parts:           make([]models.ReportPart, 0),
+		CSVID:           "no-csv-id", // Needed because CSVID is a GSI, and cannot be null
+		CSVColumnsS3Key: "no-csv-s3-key",
 	}
 
 	var reportParts []models.ReportPart
@@ -260,7 +263,9 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 				Title:           templateSection.Title,
 				OutputGenerated: false,
 				Questions:       make([]models.ReportQuestion, len(templateSection.Questions)),
+				CSVData:         make([]models.ReportCSVData, len(templateSection.CSVData)),
 				TextOutputs:     make([]models.ReportTextOutput, len(templateSection.TextOutputs)),
+				ChartOutputs:    make([]models.ReportChartOutput, len(templateSection.ChartOutputs)),
 			}
 
 			// Convert TemplateQuestions to ReportQuestions
@@ -279,6 +284,48 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 					Type:   textOutput.Type,
 					Input:  textOutput.Input,
 					Result: "", // Initialize with empty result
+				}
+			}
+
+			// Convert TemplateCsvData to ReportCsvData
+			for l, data := range templateSection.CSVData {
+				reportSection.CSVData[l] = models.ReportCSVData{
+					Label: data.Label,
+					ConfigOneDim: models.ReportOneDimConfig{
+						AggregateValueLabel: data.ConfigOneDim.AggregateValueLabel,
+						Description:         data.ConfigOneDim.Description,
+						OperationType:       data.ConfigOneDim.OperationType,
+						Column:              "",
+						AcceptedValues:      make([]string, 0),
+					},
+				}
+			}
+
+			// Convert TemplateChartOutputs to ReportChartOutputs
+			for h, chart := range templateSection.ChartOutputs {
+				newDependentColumns := make([]models.ReportOneDimConfig, len(chart.Config.DependentColumns))
+
+				for u, templateDependentColumn := range chart.Config.DependentColumns {
+					newDependentColumns[u] = models.ReportOneDimConfig{
+						AggregateValueLabel: templateDependentColumn.AggregateValueLabel,
+						Description:         templateDependentColumn.Description,
+						OperationType:       templateDependentColumn.OperationType,
+						Column:              "",
+						AcceptedValues:      make([]string, 0),
+					}
+				}
+
+				reportSection.ChartOutputs[h] = models.ReportChartOutput{
+					Title:         chart.Title,
+					Type:          chart.Type,
+					XAxisTitle:    chart.XAxisTitle,
+					YAxisTitle:    chart.YAxisTitle,
+					CartesianGrid: chart.CartesianGrid,
+					Config: models.ReportTwoDimConfig{
+						IndependentColumnLabel: chart.Config.IndependentColumnLabel,
+						DependentColumns:       newDependentColumns,
+					},
+					Results: make([]map[string]interface{}, 0),
 				}
 			}
 

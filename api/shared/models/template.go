@@ -49,8 +49,6 @@ type Template struct {
 	CreatedAt      int64
 	IsDeleted      bool
 	DeleteAt       int64
-
-	CSVColumns map[string]string
 }
 
 type TemplateMetadata struct {
