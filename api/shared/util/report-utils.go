@@ -284,10 +284,9 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 			// Convert ReportCsvData to TemplateCsvData
 			for l, data := range reportSection.CSVData {
 				templateSection.CSVData[l] = models.TemplateCSVData{
-					Label:               data.Label,
-					AggregateValueLabel: data.AggregateValueLabel,
-					Description:         data.Description,
-					OperationType:       data.OperationType,
+					Label:         data.Label,
+					Description:   data.Description,
+					OperationType: data.OperationType,
 				}
 			}
 

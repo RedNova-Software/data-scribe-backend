@@ -17,9 +17,8 @@ type ChartOutputResponse struct {
 }
 
 type CsvDataResponse struct {
-	Column         string   // The actual column in the csv
-	AcceptedValues []string // Optional
+	OperationColumn               string   // The actual column in the csv
+	OperationColumnAcceptedValues []string // Optional
 
-	FilterColumn               string   // Group by this column
-	FilterColumnAcceptedValues []string // Needed
+	FilterColumns map[string][]string // Has a map of filter columns and their accepted values
 }

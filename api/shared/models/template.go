@@ -22,10 +22,9 @@ type TemplateChartOutput struct {
 }
 
 type TemplateCSVData struct {
-	Label               string
-	AggregateValueLabel string
-	Description         string
-	OperationType       ChartOperation
+	Label         string
+	Description   string
+	OperationType ChartOperation
 }
 
 type TemplateSection struct {

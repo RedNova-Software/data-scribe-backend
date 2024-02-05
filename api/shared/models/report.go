@@ -33,15 +33,13 @@ type ReportChartOutput struct {
 }
 
 type ReportCSVData struct {
-	Label                      string
-	AggregateValueLabel        string
-	Description                string
-	OperationType              ChartOperation
-	Column                     string
-	AcceptedValues             []string
-	FilterColumn               string
-	FilterColumnAcceptedValues []string
-	Result                     string
+	Label                         string
+	Description                   string
+	OperationType                 ChartOperation
+	OperationColumn               string
+	OperationColumnAcceptedValues []string
+	FilterColumns                 map[string][]string
+	Result                        string
 }
 
 type ReportSection struct {
