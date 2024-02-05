@@ -21,13 +21,20 @@ type ReportTextOutput struct {
 }
 
 type ReportChartOutput struct {
-	Title         string
-	Type          ChartType
-	XAxisTitle    string
-	YAxisTitle    string // Optional
-	CartesianGrid bool
+	Title                  string
+	Type                   ChartType
+	Description            string
+	XAxisTitle             string
+	YAxisTitle             string // Optional
+	CartesianGrid          bool
+	IndependentColumnLabel string
 
-	Config ReportTwoDimConfig
+	IndependentColumn               string   // Actual column
+	IndependentColumnAcceptedValues []string // Optional
+
+	DependentColumns []ReportOneDimConfig
+
+	FilterColumns map[string][]string
 
 	Results []map[string]interface{}
 }
