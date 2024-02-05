@@ -378,10 +378,10 @@ func SetReportSectionResponses(reportID string,
 	// Next, update csv data responses
 	if section.CSVData != nil {
 		for i := range section.CSVData {
-			section.CSVData[i].GroupColumn = csvDataResponses[i].GroupColumn
-			section.CSVData[i].GroupColumnAcceptedValue = csvDataResponses[i].GroupColumnAcceptedValue
-			section.CSVData[i].ConfigOneDim.Column = csvDataResponses[i].DependentColumn.Column
-			section.CSVData[i].ConfigOneDim.AcceptedValues = csvDataResponses[i].DependentColumn.AcceptedValues
+			section.CSVData[i].FilterColumn = csvDataResponses[i].FilterColumn
+			section.CSVData[i].FilterColumnAcceptedValues = csvDataResponses[i].FilterColumnAcceptedValues
+			section.CSVData[i].Column = csvDataResponses[i].Column
+			section.CSVData[i].AcceptedValues = csvDataResponses[i].AcceptedValues
 		}
 	}
 

@@ -33,11 +33,15 @@ type ReportChartOutput struct {
 }
 
 type ReportCSVData struct {
-	Label                    string
-	ConfigOneDim             ReportOneDimConfig
-	GroupColumn              string
-	GroupColumnAcceptedValue string
-	Result                   string
+	Label                      string
+	AggregateValueLabel        string
+	Description                string
+	OperationType              ChartOperation
+	Column                     string
+	AcceptedValues             []string
+	FilterColumn               string
+	FilterColumnAcceptedValues []string
+	Result                     string
 }
 
 type ReportSection struct {

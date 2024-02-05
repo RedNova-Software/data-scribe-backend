@@ -17,8 +17,9 @@ type ChartOutputResponse struct {
 }
 
 type CsvDataResponse struct {
-	GroupColumn              string
-	GroupColumnAcceptedValue string // Needed
+	Column         string   // The actual column in the csv
+	AcceptedValues []string // Optional
 
-	DependentColumn OneDimConfigResponse
+	FilterColumn               string   // Group by this column
+	FilterColumnAcceptedValues []string // Needed
 }

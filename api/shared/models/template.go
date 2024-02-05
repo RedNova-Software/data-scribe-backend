@@ -22,8 +22,10 @@ type TemplateChartOutput struct {
 }
 
 type TemplateCSVData struct {
-	Label        string
-	ConfigOneDim TemplateOneDimConfig
+	Label               string
+	AggregateValueLabel string
+	Description         string
+	OperationType       ChartOperation
 }
 
 type TemplateSection struct {
