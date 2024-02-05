@@ -235,24 +235,7 @@ func UpdateSectionInReport(
 	updatedSection.Title = newSectionTitle
 	updatedSection.Questions = newQuestions
 
-	// If deleteGeneratedOutput is true or the type is not Generator, update the TextOutputs as is
-	if deleteGeneratedOutput {
-		updatedSection.TextOutputs = newTextOutputs
-		// Reset output generated since we're wiping all outputs
-		updatedSection.OutputGenerated = false
-	} else {
-		// Otherwise, update selectively
-		for i, newTextOutput := range newTextOutputs {
-			if newTextOutput.Type == models.Generator {
-				// Check if the corresponding text output already exists
-				if i < len(updatedSection.TextOutputs) && updatedSection.TextOutputs[i].Type == models.Generator {
-					// Keep the existing Result
-					newTextOutput.Result = updatedSection.TextOutputs[i].Result
-				}
-			}
-			updatedSection.TextOutputs[i] = newTextOutput
-		}
-	}
+	updateReportTextOutputs(updatedSection, newTextOutputs, deleteGeneratedOutput)
 
 	// Update csv data and chart outputs
 	updatedSection.CSVData = newCSVData
@@ -651,6 +634,33 @@ func ResetTextOutputResults(section *models.ReportSection, generateAIOutput bool
 			}
 		}
 
+	}
+}
+
+func updateReportTextOutputs(section *models.ReportSection, newTextOutputs []models.ReportTextOutput, clearGeneratorResult bool) {
+	for _, newTextOutput := range newTextOutputs {
+		found := false
+		for i, existingOutput := range section.TextOutputs {
+			// Check if the ReportTextOutput already exists (by Title and Type)
+			if existingOutput.Title == newTextOutput.Title && existingOutput.Type == newTextOutput.Type {
+				found = true
+				// Update existing ReportTextOutput
+				if clearGeneratorResult && newTextOutput.Type == models.Generator {
+					section.TextOutputs[i].Result = "" // Clear Result if specified and type is Generator
+				} else {
+					section.TextOutputs[i].Result = newTextOutput.Result
+				}
+				section.TextOutputs[i].Input = newTextOutput.Input
+				break
+			}
+		}
+		// If the ReportTextOutput is not found, add it to the section
+		if !found {
+			if clearGeneratorResult && newTextOutput.Type == models.Generator {
+				newTextOutput.Result = "" // Clear Result if specified and type is Generator
+			}
+			section.TextOutputs = append(section.TextOutputs, newTextOutput)
+		}
 	}
 }
 
