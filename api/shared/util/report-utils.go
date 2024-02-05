@@ -292,9 +292,9 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 
 			// Convert ReportChartOutputs to TemplateChartOutputs
 			for h, chart := range reportSection.ChartOutputs {
-				newDependentColumns := make([]models.TemplateOneDimConfig, len(chart.Config.DependentColumns))
+				newDependentColumns := make([]models.TemplateOneDimConfig, len(chart.DependentColumns))
 
-				for u, reportDependentColumn := range chart.Config.DependentColumns {
+				for u, reportDependentColumn := range chart.DependentColumns {
 					newDependentColumns[u] = models.TemplateOneDimConfig{
 						AggregateValueLabel: reportDependentColumn.AggregateValueLabel,
 						Description:         reportDependentColumn.Description,
@@ -303,15 +303,14 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 				}
 
 				templateSection.ChartOutputs[h] = models.TemplateChartOutput{
-					Title:         chart.Title,
-					Type:          chart.Type,
-					XAxisTitle:    chart.XAxisTitle,
-					YAxisTitle:    chart.YAxisTitle,
-					CartesianGrid: chart.CartesianGrid,
-					Config: models.TemplateTwoDimConfig{
-						IndependentColumnLabel: chart.Config.IndependentColumnLabel,
-						DependentColumns:       newDependentColumns,
-					},
+					Title:                  chart.Title,
+					Type:                   chart.Type,
+					Description:            chart.Description,
+					XAxisTitle:             chart.XAxisTitle,
+					YAxisTitle:             chart.YAxisTitle,
+					CartesianGrid:          chart.CartesianGrid,
+					IndependentColumnLabel: chart.IndependentColumnLabel,
+					DependentColumns:       newDependentColumns,
 				}
 			}
 
