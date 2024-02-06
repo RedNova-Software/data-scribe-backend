@@ -67,6 +67,7 @@ func AnalyzeTwoDimensionalData(csvFile *os.File, reportOutput *models.ReportChar
 	if err != nil {
 		return err
 	}
+
 	headers := records[0]
 	independentColumnIndex := findColumnIndex(headers, reportOutput.IndependentColumn)
 	if independentColumnIndex == -1 {
