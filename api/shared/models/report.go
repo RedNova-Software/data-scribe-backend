@@ -34,8 +34,6 @@ type ReportChartOutput struct {
 
 	DependentColumns []ReportOneDimConfig
 
-	FilterColumns map[string][]string
-
 	Results []map[string]interface{}
 }
 

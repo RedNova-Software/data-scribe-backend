@@ -7,6 +7,7 @@ type Answer struct {
 type OneDimConfigResponse struct {
 	Column         string   // The actual column in the csv
 	AcceptedValues []string // Optional
+	FilterColumns  map[string][]string
 }
 
 type ChartOutputResponse struct {
@@ -14,7 +15,6 @@ type ChartOutputResponse struct {
 	IndependentColumnAcceptedValues []string
 
 	DependentColumns []OneDimConfigResponse
-	FilterColumns    map[string][]string
 }
 
 type CsvDataResponse struct {

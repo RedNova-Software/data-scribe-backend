@@ -34,18 +34,8 @@ type ReportOneDimConfig struct {
 	OperationType ChartOperation
 
 	AcceptedValues []string // Optional
-}
 
-type TemplateTwoDimConfig struct {
-	IndependentColumnLabel string
-	DependentColumns       []TemplateOneDimConfig
-}
-
-type ReportTwoDimConfig struct {
-	IndependentColumnLabel          string
-	IndependentColumn               string
-	IndependentColumnAcceptedValues []string // Optional
-	DependentColumns                []ReportOneDimConfig
+	FilterColumns map[string][]string
 }
 
 type ChartType string
