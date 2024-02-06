@@ -15,6 +15,7 @@ type ChartOutputResponse struct {
 	IndependentColumnAcceptedValues []string
 
 	DependentColumns []OneDimConfigResponse
+	FilterColumns    map[string][]string // Top level filter columns
 }
 
 type CsvDataResponse struct {

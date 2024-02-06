@@ -389,6 +389,7 @@ func SetReportSectionResponses(reportID string,
 		for i := range section.ChartOutputs {
 			section.ChartOutputs[i].IndependentColumn = chartOutputResponses[i].IndependentColumn
 			section.ChartOutputs[i].IndependentColumnAcceptedValues = chartOutputResponses[i].IndependentColumnAcceptedValues
+			section.ChartOutputs[i].FilterColumns = chartOutputResponses[i].FilterColumns
 
 			// Update the dependent columns
 			for j := range section.ChartOutputs[i].DependentColumns {

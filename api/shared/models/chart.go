@@ -3,10 +3,9 @@ package models
 type ChartOperation string
 
 const (
-	NumericalSum          ChartOperation = "NumericalSum"
-	Average               ChartOperation = "Average"
-	UniqueOccurrences     ChartOperation = "UniqueOccurrences"
-	SetElementOccurrences ChartOperation = "SetElementOccurrences"
+	NumericalSum      ChartOperation = "NumericalSum"
+	Average           ChartOperation = "Average"
+	UniqueOccurrences ChartOperation = "UniqueOccurrences"
 )
 
 type CSVDataType string

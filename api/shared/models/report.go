@@ -32,6 +32,8 @@ type ReportChartOutput struct {
 	IndependentColumn               string   // Actual column
 	IndependentColumnAcceptedValues []string // Optional
 
+	FilterColumns map[string][]string
+
 	DependentColumns []ReportOneDimConfig
 
 	Results []map[string]interface{}
