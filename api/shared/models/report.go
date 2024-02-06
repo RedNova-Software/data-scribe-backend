@@ -29,8 +29,8 @@ type ReportChartOutput struct {
 	CartesianGrid          bool
 	IndependentColumnLabel string
 
-	IndependentColumn               string   // Actual column
-	IndependentColumnAcceptedValues []string // Optional
+	IndependentColumn string   // Actual column
+	AcceptedValues    []string // Optional
 
 	FilterColumns map[string][]string
 
@@ -40,13 +40,13 @@ type ReportChartOutput struct {
 }
 
 type ReportCSVData struct {
-	Label                         string
-	Description                   string
-	OperationType                 ChartOperation
-	OperationColumn               string
-	OperationColumnAcceptedValues []string
-	FilterColumns                 map[string][]string
-	Result                        string
+	Label           string
+	Description     string
+	OperationType   ChartOperation
+	OperationColumn string
+	AcceptedValues  []string
+	FilterColumns   map[string][]string
+	Result          string
 }
 
 type ReportSection struct {

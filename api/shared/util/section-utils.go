@@ -379,7 +379,7 @@ func SetReportSectionResponses(reportID string,
 	if section.CSVData != nil {
 		for i := range section.CSVData {
 			section.CSVData[i].OperationColumn = csvDataResponses[i].OperationColumn
-			section.CSVData[i].OperationColumnAcceptedValues = csvDataResponses[i].OperationColumnAcceptedValues
+			section.CSVData[i].AcceptedValues = csvDataResponses[i].AcceptedValues
 			section.CSVData[i].FilterColumns = csvDataResponses[i].FilterColumns
 		}
 	}
@@ -388,7 +388,7 @@ func SetReportSectionResponses(reportID string,
 	if section.ChartOutputs != nil {
 		for i := range section.ChartOutputs {
 			section.ChartOutputs[i].IndependentColumn = chartOutputResponses[i].IndependentColumn
-			section.ChartOutputs[i].IndependentColumnAcceptedValues = chartOutputResponses[i].IndependentColumnAcceptedValues
+			section.ChartOutputs[i].AcceptedValues = chartOutputResponses[i].AcceptedValues
 			section.ChartOutputs[i].FilterColumns = chartOutputResponses[i].FilterColumns
 
 			// Update the dependent columns

@@ -290,11 +290,11 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 			// Convert TemplateCsvData to ReportCsvData
 			for l, data := range templateSection.CSVData {
 				reportSection.CSVData[l] = models.ReportCSVData{
-					Label:                         data.Label,
-					Description:                   data.Description,
-					OperationType:                 data.OperationType,
-					OperationColumn:               "",
-					OperationColumnAcceptedValues: make([]string, 0),
+					Label:           data.Label,
+					Description:     data.Description,
+					OperationType:   data.OperationType,
+					OperationColumn: "",
+					AcceptedValues:  make([]string, 0),
 				}
 			}
 
