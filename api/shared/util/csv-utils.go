@@ -54,7 +54,7 @@ func GetCSVFileHandle(s3Key string) (*os.File, error) {
 		return nil, err
 	}
 
-	// Seek to the beginning of the file to allow for reading
+	// Seek to the beginning of the file to allow for reading again
 	_, err = file.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, err

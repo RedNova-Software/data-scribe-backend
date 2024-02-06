@@ -2,7 +2,6 @@ package main
 
 import (
 	"api/shared/constants"
-	"api/shared/models"
 	"api/shared/util"
 	"context"
 	"encoding/json"
@@ -13,11 +12,10 @@ import (
 )
 
 type AddSectionRequest struct {
-	ReportID         string          `json:"reportID"`
-	PartIndex        int             `json:"partIndex"`
-	SectionIndex     int             `json:"sectionIndex"`
-	Answers          []models.Answer `json:"answers"`
-	GenerateAIOutput bool            `json:"generateAIOutput"`
+	ReportID         string `json:"reportID"`
+	PartIndex        int    `json:"partIndex"`
+	SectionIndex     int    `json:"sectionIndex"`
+	GenerateAIOutput bool   `json:"generateAIOutput"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -48,7 +46,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	err = util.GenerateSection(req.ReportID, req.PartIndex, req.SectionIndex, req.Answers, req.GenerateAIOutput, userID)
+	err = util.GenerateSection(req.ReportID, req.PartIndex, req.SectionIndex, req.GenerateAIOutput, userID)
 
 	if err != nil {
 		return events.APIGatewayProxyResponse{

@@ -416,7 +416,7 @@ func SetReportSectionResponses(reportID string,
 	return err
 }
 
-func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, generateAIOutput bool, userID string) error {
+func GenerateSection(reportID string, partIndex int, sectionIndex int, generateAIOutput bool, userID string) error {
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -440,19 +440,39 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 		return fmt.Errorf("error getting section: %v", err)
 	}
 
+	// Load CSV file from S3
+	csvFile, err := GetCSVFileHandle(report.CSVID)
+	if err != nil {
+		return fmt.Errorf("error loading CSV from S3: %v", err)
+	}
+
+	// Generate csv data results from csv
+	err = GenerateSectionCsvDataResults(csvFile, section)
+
+	if err != nil {
+		return fmt.Errorf("error generating section csv data results: %v", err)
+	}
+
 	// Reset the text output results so that they can be created from input again
 	ResetTextOutputResults(section, generateAIOutput)
 
-	GenerateSectionStaticText(section, answers)
+	GenerateSectionStaticText(section)
 
 	if generateAIOutput {
 		generator := OpenAiGenerator{}
 
-		err = GenerateSectionGeneratorText(generator, section, answers)
+		err = GenerateSectionGeneratorText(generator, section)
 		if err != nil {
 			log.Panicf("error creating generator outputs: %v", err)
 			return fmt.Errorf("error creating generator outputs: %v", err)
 		}
+	}
+
+	// Generate Chart Output from CSV
+	err = GenerateChartOutputResults(csvFile, section)
+
+	if err != nil {
+		return fmt.Errorf("error generating section csv data results: %v", err)
 	}
 
 	// Set output generated after all sections generated successfully
@@ -474,24 +494,57 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 	return err
 }
 
-func GenerateSectionStaticText(section *models.ReportSection, answers []models.Answer) {
-	// Iterate over each answer
-	for i, answer := range answers {
+func GenerateSectionCsvDataResults(csvFile *os.File, section *models.ReportSection) error {
+	// Iterate over each csv data
+	for index := range section.CSVData {
 
-		// Update question answer
-		section.Questions[i].Answer = answer.Answer
+		err := AnalyzeOneDimensionalData(csvFile, &section.CSVData[index])
+		if err != nil {
+			return fmt.Errorf("error generating section csv data results: %v", err)
+		}
+	}
+	return nil
+}
+
+func GenerateChartOutputResults(csvFile *os.File, section *models.ReportSection) error {
+	// Iterate over each chart output
+	for index := range section.ChartOutputs {
+
+		err := AnalyzeTwoDimensionalData(csvFile, &section.ChartOutputs[index])
+		if err != nil {
+			return fmt.Errorf("error generating section chart output results: %v", err)
+		}
+	}
+	return nil
+}
+
+func GenerateSectionStaticText(section *models.ReportSection) {
+	// Iterate over each question, splicing answer into text
+	for _, question := range section.Questions {
 
 		// Generate static text
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Static {
 				// Assuming GenerateStaticText modifies textOutput in place
-				GenerateStaticText(&section.TextOutputs[i], section.Questions[i].Label, answer.Answer)
+				GenerateStaticText(&section.TextOutputs[i], question.Label, question.Answer)
+			}
+		}
+	}
+
+	// Iterate over each csv data, splicing result into text
+	for _, csvData := range section.CSVData {
+
+		// Generate static text
+		for i, textOutput := range section.TextOutputs {
+			if textOutput.Type == models.Static {
+				// Assuming GenerateStaticText modifies textOutput in place
+				GenerateStaticText(&section.TextOutputs[i], csvData.Label, csvData.Result)
 			}
 		}
 	}
 }
 
-func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.ReportSection, answers []models.Answer) error {
+func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.ReportSection) error {
 	// Preserve original inputs as to be able to re-create the section later with different answers to the questions.
 	originalInputs := []string{}
 	for _, textOutput := range section.TextOutputs {
@@ -509,14 +562,23 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 	}
 
 	// Splice answers into prompts
-	for i, answer := range answers {
-
-		section.Questions[i].Answer = answer.Answer
+	for _, question := range section.Questions {
 
 		// Generate the inputs with question answers spliced in
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Generator {
-				GenerateGeneratorInput(&section.TextOutputs[i], section.Questions[i].Label, answer.Answer)
+				GenerateGeneratorInput(&section.TextOutputs[i], section.Questions[i].Label, question.Answer)
+			}
+		}
+	}
+
+	// Splice the csv data results into prompts
+	for _, csvData := range section.CSVData {
+
+		// Generate the inputs with question answers spliced in
+		for i, textOutput := range section.TextOutputs {
+			if textOutput.Type == models.Generator {
+				GenerateGeneratorInput(&section.TextOutputs[i], section.CSVData[i].Label, csvData.Result)
 			}
 		}
 	}
@@ -583,17 +645,17 @@ func GetReportQuestion(questions []models.ReportQuestion, index int) (*models.Re
 }
 
 // GenerateStaticText processes a TextOutput, splicing in answers into static text outputs.
-func GenerateStaticText(textOutput *models.ReportTextOutput, questionLabel, answer string) {
+func GenerateStaticText(textOutput *models.ReportTextOutput, label, value string) {
 	// Define the pattern to be replaced
-	pattern := "**" + questionLabel
+	pattern := "**" + label
 
 	// Replace the pattern with the answer in textOutput.Input
 	// If first pass, set it to the input, else set it to the generated output replaced.
 	// This way, you can splice question answers in multiple outputs
 	if textOutput.Result == "" {
-		textOutput.Result = strings.ReplaceAll(textOutput.Input, pattern, answer)
+		textOutput.Result = strings.ReplaceAll(textOutput.Input, pattern, value)
 	} else {
-		textOutput.Result = strings.ReplaceAll(textOutput.Result, pattern, answer)
+		textOutput.Result = strings.ReplaceAll(textOutput.Result, pattern, value)
 	}
 }
 

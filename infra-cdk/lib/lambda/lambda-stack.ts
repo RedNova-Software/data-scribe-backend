@@ -143,6 +143,8 @@ export class LambdasStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
+          OPERATION_TABLE: props.operationsTable.tableName,
+          CSV_BUCKET_NAME: props.csvBucket.bucketName,
           OPENAI_API_KEY: openAIKey,
         },
         timeout: cdk.Duration.minutes(2.5),
@@ -154,6 +156,8 @@ export class LambdasStack extends cdk.Stack {
       this.generateSectionLambda,
       "cognito-idp:AdminGetUser"
     );
+    props.csvBucket.grantReadWrite(this.generateSectionLambda);
+    props.operationsTable.grantReadWriteData(this.generateSectionLambda);
 
     this.uploadCSVLambda = new lambda.Function(this, "UploadCSVLambda", {
       code: lambda.Code.fromAsset(
