@@ -567,7 +567,7 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 		// Generate the inputs with question answers spliced in
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Generator {
-				GenerateGeneratorInput(&section.TextOutputs[i], section.Questions[i].Label, question.Answer)
+				GenerateGeneratorInput(&section.TextOutputs[i], question.Label, question.Answer)
 			}
 		}
 	}
@@ -578,7 +578,7 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 		// Generate the inputs with question answers spliced in
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Generator {
-				GenerateGeneratorInput(&section.TextOutputs[i], section.CSVData[i].Label, csvData.Result)
+				GenerateGeneratorInput(&section.TextOutputs[i], csvData.Label, csvData.Result)
 			}
 		}
 	}
