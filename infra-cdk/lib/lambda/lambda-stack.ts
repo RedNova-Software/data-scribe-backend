@@ -186,7 +186,7 @@ export class LambdasStack extends cdk.Stack {
         ),
         handler: "main",
         runtime: lambda.Runtime.PROVIDED_AL2023,
-        memorySize: 1024,
+        memorySize: 2048,
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
           OPERATION_TABLE: props.operationsTable.tableName,
