@@ -183,17 +183,15 @@ func SetItemDeleted(itemType constants.ItemType, itemID string, delete bool, use
 	}
 
 	// Set deletion time to 30 days from now
-
 	deletionTime := time.Now().Add(30 * 24 * time.Hour).Unix()
+
 	var deletionTimeString *string
 
 	if delete {
 		deletionTimeString = aws.String(strconv.FormatInt(deletionTime, 10))
 	} else {
-		deletionTimeString = nil
+		deletionTimeString = aws.String("0")
 	}
-
-	strconv.FormatInt(deletionTime, 10)
 
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String(tableName),
@@ -344,10 +342,6 @@ func isUserAuthorizedForItem(itemType constants.ItemType, itemID, userID string)
 			return false, fmt.Errorf("error unmarshalling dynamo item into report: %v", err)
 		}
 
-		if report.OwnedBy.UserID != userID {
-			return false, nil
-		}
-
 		// Check if the user is the owner
 		if report.OwnedBy.UserID == userID {
 			return true, nil
@@ -367,10 +361,6 @@ func isUserAuthorizedForItem(itemType constants.ItemType, itemID, userID string)
 
 		if err != nil {
 			return false, fmt.Errorf("error unmarshalling dynamo item into template: %v", err)
-		}
-
-		if template.OwnedBy.UserID != userID {
-			return false, nil
 		}
 
 		// Check if the user is the owner

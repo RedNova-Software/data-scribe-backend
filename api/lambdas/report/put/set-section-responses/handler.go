@@ -2,6 +2,7 @@ package main
 
 import (
 	"api/shared/constants"
+	"api/shared/models"
 	"api/shared/util"
 	"context"
 	"encoding/json"
@@ -11,12 +12,13 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type UploadCsvRequest struct {
-	ReportID string `json:"reportID"`
-}
-
-type UploadCsvResponse struct {
-	PreSignedURL string
+type SetSectionResponseRequest struct {
+	ReportID             string                       `json:"reportID"`
+	PartIndex            int                          `json:"partIndex"`
+	SectionIndex         int                          `json:"sectionIndex"`
+	Answers              []models.Answer              `json:"answers"`
+	CsvDataResponses     []models.CsvDataResponse     `json:"csvDataResponses"`
+	ChartOutputResponses []models.ChartOutputResponse `json:"chartOutputResponses"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -29,7 +31,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	var req UploadCsvRequest
+	var req SetSectionResponseRequest
 	err = json.Unmarshal([]byte(request.Body), &req)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -39,41 +41,28 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	if req.ReportID == "" {
+	if req.ReportID == "" || req.PartIndex < 0 || req.SectionIndex < 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    constants.CorsHeaders,
-			Body:       "Bad Request: reportID is required.",
+			Body:       "Bad Request: reportID, sectionTitle, and sectionIndex are required.",
 		}, nil
 	}
 
-	preSignedURL, err := util.SetReportCSV(req.ReportID, userID)
+	err = util.SetReportSectionResponses(req.ReportID, req.PartIndex, req.SectionIndex, req.Answers, req.CsvDataResponses, req.ChartOutputResponses, userID)
+
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Headers:    constants.CorsHeaders,
-			Body:       "Internal Server Error: " + err.Error(),
-		}, nil
-	}
-
-	// Marshal the report into JSON
-	response := UploadCsvResponse{
-		PreSignedURL: preSignedURL,
-	}
-
-	responseJSON, err := json.Marshal(response)
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Body:       "Error marshalling response into JSON: " + err.Error(),
-			Headers:    constants.CorsHeaders,
+			Body:       "Error setting section responses: " + err.Error(),
 		}, nil
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers:    constants.CorsHeaders,
-		Body:       string(responseJSON),
+		Body:       "Section responses set successfully",
 	}, nil
 }
 

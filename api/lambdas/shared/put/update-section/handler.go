@@ -24,13 +24,17 @@ type UpdatedSectionRequest struct {
 }
 
 type ReportSectionContents struct {
-	Questions   []models.ReportQuestion   `json:"questions"`
-	TextOutputs []models.ReportTextOutput `json:"textOutputs"`
+	Questions   []models.ReportQuestion    `json:"questions"`
+	TextOutputs []models.ReportTextOutput  `json:"textOutputs"`
+	CSVData     []models.ReportCSVData     `json:"csvData"`
+	ChartOuput  []models.ReportChartOutput `json:"chartOutputs"`
 }
 
 type TemplateSectionContents struct {
-	Questions   []models.TemplateQuestion   `json:"questions"`
-	TextOutputs []models.TemplateTextOutput `json:"textOutputs"`
+	Questions   []models.TemplateQuestion    `json:"questions"`
+	TextOutputs []models.TemplateTextOutput  `json:"textOutputs"`
+	CSVData     []models.TemplateCSVData     `json:"csvData"`
+	ChartOuput  []models.TemplateChartOutput `json:"chartOutputs"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -74,7 +78,19 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 
-		err = util.UpdateSectionInReport(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs, req.DeleteGeneratedOutput, userID)
+		err = util.UpdateSectionInReport(
+			req.ItemID,
+			req.OldPartIndex,
+			req.NewPartIndex,
+			req.OldSectionIndex,
+			req.NewSectionIndex,
+			req.NewSectionTitle,
+			sectionContents.Questions,
+			sectionContents.TextOutputs,
+			sectionContents.CSVData,
+			sectionContents.ChartOuput,
+			req.DeleteGeneratedOutput,
+			userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{
@@ -96,7 +112,18 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			}, nil
 		}
 
-		err = util.UpdateSectionInTemplate(req.ItemID, req.OldPartIndex, req.NewPartIndex, req.OldSectionIndex, req.NewSectionIndex, req.NewSectionTitle, sectionContents.Questions, sectionContents.TextOutputs, userID)
+		err = util.UpdateSectionInTemplate(
+			req.ItemID,
+			req.OldPartIndex,
+			req.NewPartIndex,
+			req.OldSectionIndex,
+			req.NewSectionIndex,
+			req.NewSectionTitle,
+			sectionContents.Questions,
+			sectionContents.TextOutputs,
+			sectionContents.CSVData,
+			sectionContents.ChartOuput,
+			userID)
 
 		if err != nil {
 			return events.APIGatewayProxyResponse{

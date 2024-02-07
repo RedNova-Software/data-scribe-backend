@@ -1,8 +1,9 @@
 package constants
 
 const (
-	ReportTable   string = "REPORT_TABLE"
-	TemplateTable string = "TEMPLATE_TABLE"
+	ReportTable    string = "REPORT_TABLE"
+	TemplateTable  string = "TEMPLATE_TABLE"
+	OperationTable string = "OPERATION_TABLE"
 )
 
 const (
@@ -14,5 +15,6 @@ const (
 )
 
 const (
-	S3BucketName string = "S3_BUCKET_NAME"
+	CsvBucketName        string = "CSV_BUCKET_NAME"
+	ColumnDataBucketName string = "COLUMN_DATA_BUCKET_NAME"
 )

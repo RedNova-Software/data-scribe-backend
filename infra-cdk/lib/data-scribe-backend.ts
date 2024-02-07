@@ -23,14 +23,18 @@ const cognitoStack = new CognitoUserPoolStack(app, "CognitoStack", {
 
 const s3BucketStack = new S3BucketStack(app, "CSVBucketStack", {
   env: env, // Specify the account and region
+  reportTable: dynamoDBStack.reportTable,
+  operationTable: dynamoDBStack.operationTable,
 });
 
 const lambdaFunctionsStack = new LambdasStack(app, "LambdaStack", {
   env,
   reportTable: dynamoDBStack.reportTable,
   templateTable: dynamoDBStack.templateTable,
+  operationsTable: dynamoDBStack.operationTable,
   userPool: cognitoStack.userPool,
   csvBucket: s3BucketStack.csvBucket,
+  columnDataBucket: s3BucketStack.columnDataBucket,
 });
 
 const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
@@ -42,6 +46,9 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   generateSectionLambda: lambdaFunctionsStack.generateSectionLambda,
   getAllReportTypesLambda: lambdaFunctionsStack.getAllReportTypesLambda,
   uploadCSVLambda: lambdaFunctionsStack.uploadCSVLambda,
+  getCSVUniqueColumnsMapLambda:
+    lambdaFunctionsStack.getCSVUniqueColumnsMapLambda,
+  setSectionResponsesLambda: lambdaFunctionsStack.setSectionResponsesLambda,
 
   // Template Lambdas
   getTemplateByIDLambda: lambdaFunctionsStack.getTemplateByIDLambda,
@@ -64,6 +71,9 @@ const apiGatewayStack = new GatewayStack(app, "GatewayStack", {
   // User Lambdas
   getUserIDLambda: lambdaFunctionsStack.getUserIDLambda,
   getAllUsersLambda: lambdaFunctionsStack.getAllUsersLambda,
+
+  // Operation Lambdas
+  getOperationStatusLambda: lambdaFunctionsStack.getOperationStatusLambda,
 
   // User Pool
   userPool: cognitoStack.userPool,

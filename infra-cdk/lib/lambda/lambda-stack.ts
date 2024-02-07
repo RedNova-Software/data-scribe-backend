@@ -10,8 +10,10 @@ import * as fs from "fs";
 interface LambdasStackProps extends cdk.StackProps {
   reportTable: dynamodb.Table;
   templateTable: dynamodb.Table;
+  operationsTable: dynamodb.Table;
   userPool: cognito.UserPool;
   readonly csvBucket: s3.Bucket;
+  readonly columnDataBucket: s3.Bucket;
 }
 
 export class LambdasStack extends cdk.Stack {
@@ -22,6 +24,8 @@ export class LambdasStack extends cdk.Stack {
   public readonly generateSectionLambda: lambda.IFunction;
   public readonly getAllReportTypesLambda: lambda.IFunction;
   public readonly uploadCSVLambda: lambda.IFunction;
+  public readonly getCSVUniqueColumnsMapLambda: lambda.IFunction;
+  public readonly setSectionResponsesLambda: lambda.IFunction;
 
   // Template Lambas
   public readonly getTemplateByIDLambda: lambda.IFunction;
@@ -44,6 +48,9 @@ export class LambdasStack extends cdk.Stack {
   // User Lambdas
   public readonly getUserIDLambda: lambda.IFunction;
   public readonly getAllUsersLambda: lambda.IFunction;
+
+  // Operation lambdas
+  public readonly getOperationStatusLambda: lambda.IFunction;
 
   // --------------------------------------------------------- //
 
@@ -136,6 +143,8 @@ export class LambdasStack extends cdk.Stack {
         runtime: lambda.Runtime.PROVIDED_AL2023,
         environment: {
           REPORT_TABLE: props.reportTable.tableName,
+          OPERATION_TABLE: props.operationsTable.tableName,
+          CSV_BUCKET_NAME: props.csvBucket.bucketName,
           OPENAI_API_KEY: openAIKey,
         },
         timeout: cdk.Duration.minutes(2.5),
@@ -147,6 +156,8 @@ export class LambdasStack extends cdk.Stack {
       this.generateSectionLambda,
       "cognito-idp:AdminGetUser"
     );
+    props.csvBucket.grantReadWrite(this.generateSectionLambda);
+    props.operationsTable.grantReadWriteData(this.generateSectionLambda);
 
     this.uploadCSVLambda = new lambda.Function(this, "UploadCSVLambda", {
       code: lambda.Code.fromAsset(
@@ -157,12 +168,55 @@ export class LambdasStack extends cdk.Stack {
       memorySize: 1024,
       environment: {
         REPORT_TABLE: props.reportTable.tableName,
-        S3_BUCKET_NAME: props.csvBucket.bucketName,
+        OPERATION_TABLE: props.operationsTable.tableName,
+        CSV_BUCKET_NAME: props.csvBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(30),
     });
     props.reportTable.grantReadWriteData(this.uploadCSVLambda);
     props.csvBucket.grantReadWrite(this.uploadCSVLambda);
+    props.operationsTable.grantReadWriteData(this.uploadCSVLambda);
+
+    this.getCSVUniqueColumnsMapLambda = new lambda.Function(
+      this,
+      "GetCSVUniqueColumnsMapLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/get-csv-unique-columns-map")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        memorySize: 2048,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+          OPERATION_TABLE: props.operationsTable.tableName,
+          COLUMN_DATA_BUCKET_NAME: props.columnDataBucket.bucketName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+    props.reportTable.grantReadWriteData(this.getCSVUniqueColumnsMapLambda);
+    props.columnDataBucket.grantReadWrite(this.getCSVUniqueColumnsMapLambda);
+    props.operationsTable.grantReadWriteData(this.getCSVUniqueColumnsMapLambda);
+
+    this.setSectionResponsesLambda = new lambda.Function(
+      this,
+      "SetSectionResponsesLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/set-section-responses")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        memorySize: 1024,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+    props.reportTable.grantReadWriteData(this.setSectionResponsesLambda);
+
     // --------------------------------------------------------- //
     // Template Lambdas
 
@@ -417,8 +471,8 @@ export class LambdasStack extends cdk.Stack {
       },
       memorySize: 1024,
     });
-    props.reportTable.grantReadWriteData(this.deleteItemLambda);
-    props.templateTable.grantReadWriteData(this.deleteItemLambda);
+    props.reportTable.grantReadWriteData(this.restoreItemLambda);
+    props.templateTable.grantReadWriteData(this.restoreItemLambda);
 
     // --------------------------------------------------------- //
 
@@ -449,5 +503,24 @@ export class LambdasStack extends cdk.Stack {
     props.userPool.grant(this.getAllUsersLambda, "cognito-idp:ListUsers");
 
     // --------------------------------------------------------- //
+
+    // Operation Lambdas
+
+    this.getOperationStatusLambda = new lambda.Function(
+      this,
+      "GetOperationStatusLambda",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/get-operation-status")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        memorySize: 1024,
+        environment: {
+          OPERATION_TABLE: props.operationsTable.tableName,
+        },
+      }
+    );
+    props.operationsTable.grantReadData(this.getOperationStatusLambda);
   }
 }

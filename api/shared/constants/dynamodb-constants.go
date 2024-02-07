@@ -38,10 +38,16 @@ const (
 )
 
 const (
-	CSVIDField string = "CSVID"
+	CSVIDField           string = "CSVID"
+	CSVColumnsS3KeyField string = "CSVColumnsS3Key"
 )
 
 const (
 	IsDeletedField string = "IsDeleted"
 	DeleteAtField  string = "DeleteAt"
+)
+
+const (
+	OperationIDField        string = "OperationID"
+	OperationCompletedField string = "Completed"
 )

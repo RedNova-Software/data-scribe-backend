@@ -15,6 +15,8 @@ interface GatewayStackProps extends cdk.StackProps {
   generateSectionLambda: lambda.IFunction;
   getAllReportTypesLambda: lambda.IFunction;
   uploadCSVLambda: lambda.IFunction;
+  getCSVUniqueColumnsMapLambda: lambda.IFunction;
+  setSectionResponsesLambda: lambda.IFunction;
 
   // Template Lambas
   getTemplateByIDLambda: lambda.IFunction;
@@ -37,6 +39,9 @@ interface GatewayStackProps extends cdk.StackProps {
   // User Lambdas
   getUserIDLambda: lambda.IFunction;
   getAllUsersLambda: lambda.IFunction;
+
+  // Operation Lambdas
+  getOperationStatusLambda: lambda.IFunction;
 
   // Cognito User Pool
   userPool: cognito.UserPool;
@@ -91,13 +96,13 @@ export class GatewayStack extends cdk.Stack {
 
     const templateResource = gateway.root.addResource("templates");
     const templatePartResource = templateResource.addResource("parts");
-    const templateSectionsResource =
-      templatePartResource.addResource("sections");
 
     const sharedResource = gateway.root.addResource("shared");
     const sharedPartResource = sharedResource.addResource("parts");
     const sharedSectionResource = sharedPartResource.addResource("sections");
     const csvResource = reportResource.addResource("csv");
+
+    const operationsResource = gateway.root.addResource("operations");
 
     // Report Endpoints
 
@@ -150,7 +155,7 @@ export class GatewayStack extends cdk.Stack {
     const generateSectionEndpoint =
       reportSectionsResource.addResource("generate");
     generateSectionEndpoint.addMethod(
-      "POST",
+      "PUT",
       new apigateway.LambdaIntegration(props.generateSectionLambda),
       {
         authorizer,
@@ -162,6 +167,31 @@ export class GatewayStack extends cdk.Stack {
     uploadCSVEndpoint.addMethod(
       "POST",
       new apigateway.LambdaIntegration(props.uploadCSVLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const getReportCsvColumnValuesMapEndpoint =
+      csvResource.addResource("getColumnValuesMap");
+    getReportCsvColumnValuesMapEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getCSVUniqueColumnsMapLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        requestParameters: {
+          "method.request.querystring.reportID": true,
+        },
+      }
+    );
+
+    const setSectionResponsesEndpoint =
+      sharedSectionResource.addResource("responses");
+    setSectionResponsesEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.setSectionResponsesLambda),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -363,5 +393,17 @@ export class GatewayStack extends cdk.Stack {
     );
 
     // --------------------------------------------------------- //
+
+    // Operation Endpoints
+
+    const getOperationStatusEndpoint = operationsResource.addResource("status");
+    getOperationStatusEndpoint.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(props.getOperationStatusLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
   }
 }

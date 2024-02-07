@@ -22,13 +22,17 @@ type AddSectionToPartRequest struct {
 }
 
 type ReportSectionContents struct {
-	Questions   []models.ReportQuestion   `json:"questions"`
-	TextOutputs []models.ReportTextOutput `json:"textOutputs"`
+	Questions   []models.ReportQuestion    `json:"questions"`
+	TextOutputs []models.ReportTextOutput  `json:"textOutputs"`
+	CSVData     []models.ReportCSVData     `json:"csvData"`
+	ChartOuput  []models.ReportChartOutput `json:"chartOutputs"`
 }
 
 type TemplateSectionContents struct {
-	Questions   []models.TemplateQuestion   `json:"questions"`
-	TextOutputs []models.TemplateTextOutput `json:"textOutputs"`
+	Questions   []models.TemplateQuestion    `json:"questions"`
+	TextOutputs []models.TemplateTextOutput  `json:"textOutputs"`
+	CSVData     []models.TemplateCSVData     `json:"csvData"`
+	ChartOuput  []models.TemplateChartOutput `json:"chartOutputs"`
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -73,9 +77,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}
 
 		newSection := models.ReportSection{
-			Title:       req.SectionTitle,
-			Questions:   contents.Questions,
-			TextOutputs: contents.TextOutputs,
+			Title:        req.SectionTitle,
+			Questions:    contents.Questions,
+			TextOutputs:  contents.TextOutputs,
+			CSVData:      contents.CSVData,
+			ChartOutputs: contents.ChartOuput,
 		}
 		err = util.AddSectionToReport(req.ItemID, req.PartIndex, req.SectionIndex, newSection, userID)
 
@@ -100,9 +106,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}
 
 		newSection := models.TemplateSection{
-			Title:       req.SectionTitle,
-			Questions:   contents.Questions,
-			TextOutputs: contents.TextOutputs,
+			Title:        req.SectionTitle,
+			Questions:    contents.Questions,
+			TextOutputs:  contents.TextOutputs,
+			CSVData:      contents.CSVData,
+			ChartOutputs: contents.ChartOuput,
 		}
 
 		err = util.AddSectionToTemplate(req.ItemID, req.PartIndex, req.SectionIndex, newSection, userID)

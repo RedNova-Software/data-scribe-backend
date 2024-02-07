@@ -207,9 +207,12 @@ func UpdateSectionInReport(
 	newSectionTitle string,
 	newQuestions []models.ReportQuestion,
 	newTextOutputs []models.ReportTextOutput,
+	newCSVData []models.ReportCSVData,
+	newChartOutputs []models.ReportChartOutput,
 	deleteGeneratedOutput bool,
 	userID string,
 ) error {
+
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -232,24 +235,11 @@ func UpdateSectionInReport(
 	updatedSection.Title = newSectionTitle
 	updatedSection.Questions = newQuestions
 
-	// If deleteGeneratedOutput is true or the type is not Generator, update the TextOutputs as is
-	if deleteGeneratedOutput {
-		updatedSection.TextOutputs = newTextOutputs
-		// Rest output generated since we're wiping all outputs
-		updatedSection.OutputGenerated = false
-	} else {
-		// Otherwise, update selectively
-		for i, newTextOutput := range newTextOutputs {
-			if newTextOutput.Type == models.Generator {
-				// Check if the corresponding text output already exists
-				if i < len(updatedSection.TextOutputs) && updatedSection.TextOutputs[i].Type == models.Generator {
-					// Keep the existing Result
-					newTextOutput.Result = updatedSection.TextOutputs[i].Result
-				}
-			}
-			updatedSection.TextOutputs[i] = newTextOutput
-		}
-	}
+	updateReportTextOutputs(updatedSection, newTextOutputs, deleteGeneratedOutput)
+
+	// Update csv data and chart outputs
+	updatedSection.CSVData = newCSVData
+	updatedSection.ChartOutputs = newChartOutputs
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInReport(report, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
@@ -289,6 +279,8 @@ func UpdateSectionInTemplate(
 	newSectionTitle string,
 	newQuestions []models.TemplateQuestion,
 	newTextOutputs []models.TemplateTextOutput,
+	newCSVData []models.TemplateCSVData,
+	newChartOutputs []models.TemplateChartOutput,
 	userID string,
 ) error {
 	tableName := os.Getenv(constants.TemplateTable)
@@ -313,6 +305,8 @@ func UpdateSectionInTemplate(
 	updatedSection.Title = newSectionTitle
 	updatedSection.Questions = newQuestions
 	updatedSection.TextOutputs = newTextOutputs
+	updatedSection.CSVData = newCSVData
+	updatedSection.ChartOutputs = newChartOutputs
 
 	if oldPartIndex != newPartIndex || oldSectionIndex != newSectionIndex {
 		err = moveSectionInTemplate(template, oldPartIndex, oldSectionIndex, newPartIndex, newSectionIndex)
@@ -343,7 +337,14 @@ func UpdateSectionInTemplate(
 
 }
 
-func GenerateSection(reportID string, partIndex int, sectionIndex int, answers []models.Answer, generateAIOutput bool, userID string) error {
+func SetReportSectionResponses(reportID string,
+	partIndex int,
+	sectionIndex int,
+	questionAnswers []models.Answer,
+	csvDataResponses []models.CsvDataResponse,
+	chartOutputResponses []models.ChartOutputResponse,
+	userID string) error {
+
 	tableName := os.Getenv(constants.ReportTable)
 	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
 
@@ -367,19 +368,111 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 		return fmt.Errorf("error getting section: %v", err)
 	}
 
+	// First, update question answers
+	if section.Questions != nil {
+		for i := range section.Questions {
+			section.Questions[i].Answer = questionAnswers[i].Answer
+		}
+	}
+
+	// Next, update csv data responses
+	if section.CSVData != nil {
+		for i := range section.CSVData {
+			section.CSVData[i].OperationColumn = csvDataResponses[i].OperationColumn
+			section.CSVData[i].AcceptedValues = csvDataResponses[i].AcceptedValues
+			section.CSVData[i].FilterColumns = csvDataResponses[i].FilterColumns
+		}
+	}
+
+	// Next, update chart output responses
+	if section.ChartOutputs != nil {
+		for i := range section.ChartOutputs {
+			section.ChartOutputs[i].IndependentColumn = chartOutputResponses[i].IndependentColumn
+			section.ChartOutputs[i].AcceptedValues = chartOutputResponses[i].AcceptedValues
+			section.ChartOutputs[i].FilterColumns = chartOutputResponses[i].FilterColumns
+
+			// Update the dependent columns
+			for j := range section.ChartOutputs[i].DependentColumns {
+				section.ChartOutputs[i].DependentColumns[j].Column = chartOutputResponses[i].DependentColumns[j].Column
+				section.ChartOutputs[i].DependentColumns[j].AcceptedValues = chartOutputResponses[i].DependentColumns[j].AcceptedValues
+				section.ChartOutputs[i].DependentColumns[j].FilterColumns = chartOutputResponses[i].DependentColumns[j].FilterColumns
+			}
+		}
+	}
+
+	// Update last modified
+	report.LastModifiedAt = GetCurrentTime()
+
+	// Update the report in DynamoDB
+	updatedReport, err := dynamodbattribute.MarshalMap(report)
+	if err != nil {
+		return err
+	}
+
+	_, err = dynamoDBClient.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      updatedReport,
+	})
+	return err
+}
+
+func GenerateSection(reportID string, partIndex int, sectionIndex int, generateAIOutput bool, userID string) error {
+	tableName := os.Getenv(constants.ReportTable)
+	dynamoDBClient, err := GetDynamoDBClient(constants.USEast2)
+
+	if err != nil {
+		return fmt.Errorf("error getting dynamodb client: %v", err)
+	}
+
+	report, err := GetReport(reportID, userID)
+
+	if err != nil {
+		return fmt.Errorf("error getting report from DynamoDB: %v", err)
+	}
+
+	if report == nil {
+		return fmt.Errorf("report not found: %v", err)
+	}
+
+	section, err := GetReportSection(report, partIndex, sectionIndex)
+
+	if err != nil {
+		return fmt.Errorf("error getting section: %v", err)
+	}
+
+	// Load CSV file from S3
+	csvFile, err := GetCSVFileHandle(report.CSVID)
+	if err != nil {
+		return fmt.Errorf("error loading CSV from S3: %v", err)
+	}
+
+	// Generate csv data results from csv
+	err = GenerateSectionCsvDataResults(csvFile, section)
+
+	if err != nil {
+		return fmt.Errorf("error generating section csv data results: %v", err)
+	}
+
 	// Reset the text output results so that they can be created from input again
 	ResetTextOutputResults(section, generateAIOutput)
 
-	GenerateSectionStaticText(section, answers)
+	GenerateSectionStaticText(section)
 
 	if generateAIOutput {
 		generator := OpenAiGenerator{}
 
-		err = GenerateSectionGeneratorText(generator, section, answers)
+		err = GenerateSectionGeneratorText(generator, section)
 		if err != nil {
 			log.Panicf("error creating generator outputs: %v", err)
 			return fmt.Errorf("error creating generator outputs: %v", err)
 		}
+	}
+
+	// Generate Chart Output from CSV
+	err = GenerateChartOutputResults(csvFile, section)
+
+	if err != nil {
+		return fmt.Errorf("error generating section csv data results: %v", err)
 	}
 
 	// Set output generated after all sections generated successfully
@@ -401,29 +494,57 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, answers [
 	return err
 }
 
-func GenerateSectionStaticText(section *models.ReportSection, answers []models.Answer) {
-	// Iterate over each answer
-	for _, answer := range answers {
-		// Find the matching question
-		question, err := GetReportQuestion(section.Questions, answer.QuestionIndex)
-		if err != nil {
-			continue // or handle the error as you see fit
-		}
+func GenerateSectionCsvDataResults(csvFile *os.File, section *models.ReportSection) error {
+	// Iterate over each csv data
+	for index := range section.CSVData {
 
-		// Update question answer
-		question.Answer = answer.Answer
+		err := AnalyzeOneDimensionalData(csvFile, &section.CSVData[index])
+		if err != nil {
+			return fmt.Errorf("error generating section csv data results: %v", err)
+		}
+	}
+	return nil
+}
+
+func GenerateChartOutputResults(csvFile *os.File, section *models.ReportSection) error {
+	// Iterate over each chart output
+	for index := range section.ChartOutputs {
+
+		err := AnalyzeTwoDimensionalData(csvFile, &section.ChartOutputs[index])
+		if err != nil {
+			return fmt.Errorf("error generating section chart output results: %v", err)
+		}
+	}
+	return nil
+}
+
+func GenerateSectionStaticText(section *models.ReportSection) {
+	// Iterate over each question, splicing answer into text
+	for _, question := range section.Questions {
 
 		// Generate static text
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Static {
 				// Assuming GenerateStaticText modifies textOutput in place
-				GenerateStaticText(&section.TextOutputs[i], question.Label, answer.Answer)
+				GenerateStaticText(&section.TextOutputs[i], question.Label, question.Answer)
+			}
+		}
+	}
+
+	// Iterate over each csv data, splicing result into text
+	for _, csvData := range section.CSVData {
+
+		// Generate static text
+		for i, textOutput := range section.TextOutputs {
+			if textOutput.Type == models.Static {
+				// Assuming GenerateStaticText modifies textOutput in place
+				GenerateStaticText(&section.TextOutputs[i], csvData.Label, csvData.Result)
 			}
 		}
 	}
 }
 
-func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.ReportSection, answers []models.Answer) error {
+func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.ReportSection) error {
 	// Preserve original inputs as to be able to re-create the section later with different answers to the questions.
 	originalInputs := []string{}
 	for _, textOutput := range section.TextOutputs {
@@ -441,20 +562,23 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 	}
 
 	// Splice answers into prompts
-	for _, answer := range answers {
-		// Find the matching question
-		question, err := GetReportQuestion(section.Questions, answer.QuestionIndex)
-		if err != nil {
-			continue
-		}
-
-		// Update question answer
-		question.Answer = answer.Answer
+	for _, question := range section.Questions {
 
 		// Generate the inputs with question answers spliced in
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Generator {
-				GenerateGeneratorInput(&section.TextOutputs[i], question.Label, answer.Answer)
+				GenerateGeneratorInput(&section.TextOutputs[i], question.Label, question.Answer)
+			}
+		}
+	}
+
+	// Splice the csv data results into prompts
+	for _, csvData := range section.CSVData {
+
+		// Generate the inputs with question answers spliced in
+		for i, textOutput := range section.TextOutputs {
+			if textOutput.Type == models.Generator {
+				GenerateGeneratorInput(&section.TextOutputs[i], csvData.Label, csvData.Result)
 			}
 		}
 	}
@@ -521,17 +645,17 @@ func GetReportQuestion(questions []models.ReportQuestion, index int) (*models.Re
 }
 
 // GenerateStaticText processes a TextOutput, splicing in answers into static text outputs.
-func GenerateStaticText(textOutput *models.ReportTextOutput, questionLabel, answer string) {
+func GenerateStaticText(textOutput *models.ReportTextOutput, label, value string) {
 	// Define the pattern to be replaced
-	pattern := "**" + questionLabel
+	pattern := "**" + label
 
 	// Replace the pattern with the answer in textOutput.Input
 	// If first pass, set it to the input, else set it to the generated output replaced.
 	// This way, you can splice question answers in multiple outputs
 	if textOutput.Result == "" {
-		textOutput.Result = strings.ReplaceAll(textOutput.Input, pattern, answer)
+		textOutput.Result = strings.ReplaceAll(textOutput.Input, pattern, value)
 	} else {
-		textOutput.Result = strings.ReplaceAll(textOutput.Result, pattern, answer)
+		textOutput.Result = strings.ReplaceAll(textOutput.Result, pattern, value)
 	}
 }
 
@@ -573,6 +697,33 @@ func ResetTextOutputResults(section *models.ReportSection, generateAIOutput bool
 			}
 		}
 
+	}
+}
+
+func updateReportTextOutputs(section *models.ReportSection, newTextOutputs []models.ReportTextOutput, clearGeneratorResult bool) {
+	for _, newTextOutput := range newTextOutputs {
+		found := false
+		for i, existingOutput := range section.TextOutputs {
+			// Check if the ReportTextOutput already exists (by Title and Type)
+			if existingOutput.Title == newTextOutput.Title && existingOutput.Type == newTextOutput.Type {
+				found = true
+				// Update existing ReportTextOutput
+				if clearGeneratorResult && newTextOutput.Type == models.Generator {
+					section.TextOutputs[i].Result = "" // Clear Result if specified and type is Generator
+				} else {
+					section.TextOutputs[i].Result = newTextOutput.Result
+				}
+				section.TextOutputs[i].Input = newTextOutput.Input
+				break
+			}
+		}
+		// If the ReportTextOutput is not found, add it to the section
+		if !found {
+			if clearGeneratorResult && newTextOutput.Type == models.Generator {
+				newTextOutput.Result = "" // Clear Result if specified and type is Generator
+			}
+			section.TextOutputs = append(section.TextOutputs, newTextOutput)
+		}
 	}
 }
 

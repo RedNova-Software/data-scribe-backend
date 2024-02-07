@@ -11,10 +11,30 @@ type TemplateTextOutput struct {
 	Input string
 }
 
+type TemplateChartOutput struct {
+	Title         string
+	Type          ChartType
+	Description   string
+	XAxisTitle    string
+	YAxisTitle    string // Optional
+	CartesianGrid bool
+
+	IndependentColumnLabel string
+	DependentColumns       []TemplateOneDimConfig
+}
+
+type TemplateCSVData struct {
+	Label         string
+	Description   string
+	OperationType ChartOperation
+}
+
 type TemplateSection struct {
-	Title       string
-	Questions   []TemplateQuestion
-	TextOutputs []TemplateTextOutput
+	Title        string
+	Questions    []TemplateQuestion
+	CSVData      []TemplateCSVData
+	TextOutputs  []TemplateTextOutput
+	ChartOutputs []TemplateChartOutput
 }
 
 type TemplatePart struct {

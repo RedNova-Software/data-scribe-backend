@@ -1,10 +1,5 @@
 package models
 
-type Answer struct {
-	QuestionIndex int
-	Answer        string
-}
-
 type ReportQuestion struct {
 	Label    string
 	Question string
@@ -25,29 +20,47 @@ type ReportTextOutput struct {
 	Result string
 }
 
+type ReportChartOutput struct {
+	Title                  string
+	Type                   ChartType
+	Description            string
+	XAxisTitle             string
+	YAxisTitle             string // Optional
+	CartesianGrid          bool
+	IndependentColumnLabel string
+
+	IndependentColumn string   // Actual column
+	AcceptedValues    []string // Optional
+
+	FilterColumns map[string][]string
+
+	DependentColumns []ReportOneDimConfig
+
+	Results []map[string]interface{}
+}
+
+type ReportCSVData struct {
+	Label           string
+	Description     string
+	OperationType   ChartOperation
+	OperationColumn string
+	AcceptedValues  []string
+	FilterColumns   map[string][]string
+	Result          string
+}
+
 type ReportSection struct {
 	Title           string
 	OutputGenerated bool
 	Questions       []ReportQuestion
+	CSVData         []ReportCSVData
 	TextOutputs     []ReportTextOutput
+	ChartOutputs    []ReportChartOutput
 }
 
 type ReportPart struct {
 	Title    string
 	Sections []ReportSection
-}
-
-type ModelInfo struct {
-}
-
-type Model struct {
-	ModelType string
-	ModelInfo ModelInfo
-}
-
-type ModelOutput struct {
-	TextOutputs []ReportTextOutput
-	Models      []Model
 }
 
 type Report struct {
@@ -63,6 +76,8 @@ type Report struct {
 	IsDeleted      bool
 	DeleteAt       int64
 	CSVID          string
+
+	CSVColumnsS3Key string
 }
 
 type ReportMetadata struct {

@@ -5,6 +5,9 @@ node_modules
 # Go pkg
 pkg
 
+# Test library csv files
+api/test/test_files/*
+
 # Compiled lambda binaries
 infra-cdk/bin/lambdas/*
 

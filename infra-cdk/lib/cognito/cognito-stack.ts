@@ -4,7 +4,6 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as iam from "aws-cdk-lib/aws-iam";
 import path = require("path");
-import { buildLambda } from "./helper/build-lambda";
 
 export class CognitoUserPoolStack extends cdk.Stack {
   public readonly userPool: cognito.UserPool;
@@ -12,20 +11,17 @@ export class CognitoUserPoolStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Build the post confirmation lambda
-    buildLambda();
-
     // Define the lambda function
     const userConfirmationLambda = new lambda.Function(
       this,
       "UserConfirmationLambda",
       {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "index.handler",
         code: lambda.Code.fromAsset(
-          path.join(__dirname, "./lambda/build/lambda.zip")
+          path.join(__dirname, "../../bin/lambdas/set-new-user-disable")
         ),
-        memorySize: 1024,
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        memorySize: 512,
       }
     );
 

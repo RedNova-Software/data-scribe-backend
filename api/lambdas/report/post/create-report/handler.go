@@ -69,9 +69,12 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			UserID:       userID,
 			UserNickName: userNickName,
 		},
-		SharedWithIDs:  make([]string, 0),
-		CreatedAt:      util.GetCurrentTime(),
-		LastModifiedAt: util.GetCurrentTime(),
+		SharedWithIDs:   make([]string, 0),
+		CreatedAt:       util.GetCurrentTime(),
+		LastModifiedAt:  util.GetCurrentTime(),
+		CSVID:           "no-csv-id", // Needed because CSVID is a GSI, and cannot be null
+		CSVColumnsS3Key: "no-csv-s3-key",
+		IsDeleted:       false,
 	}
 
 	err = util.PutNewReport(report)
