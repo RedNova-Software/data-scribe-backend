@@ -5,7 +5,6 @@ import (
 	"api/shared/models"
 	"api/shared/util"
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -58,21 +57,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	// Marshal the report into JSON
-	columnValues, err := util.GetColumnValuesMapFromS3(csvColumnsS3Key)
+	columnValuesJSON, err := util.GetColumnValuesMapJSONFromS3(csvColumnsS3Key)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Body:       "Error getting column values map from s3: " + err.Error(),
-			Headers:    constants.CorsHeaders,
-		}, nil
-	}
-
-	// Marshal the report into JSON
-	columnValuesJSON, err := json.Marshal(columnValues)
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Body:       "Error marshalling column values into JSON: " + err.Error(),
 			Headers:    constants.CorsHeaders,
 		}, nil
 	}

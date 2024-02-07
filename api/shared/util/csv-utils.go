@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Returns a handle to the csv file in the local file system
@@ -128,8 +129,9 @@ func UpdateReportCsvColumns(csvid string, csvColumns models.CsvDataColumnUniqueV
 	return nil
 }
 
+// *models.CsvDataColumnUniqueValuesMap
 // getJSONFromS3 fetches a JSON object from S3 and unmarshals it into a struct.
-func GetColumnValuesMapFromS3(s3Key string) (*models.CsvDataColumnUniqueValuesMap, error) {
+func GetColumnValuesMapJSONFromS3(s3Key string) ([]byte, error) {
 	s3Client, err := GetS3Client(constants.USEast2)
 	if err != nil {
 		return nil, err
@@ -145,19 +147,19 @@ func GetColumnValuesMapFromS3(s3Key string) (*models.CsvDataColumnUniqueValuesMa
 	}
 	defer result.Body.Close()
 
-	// Read the S3 object's body
-	body, err := io.ReadAll(result.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read object body: %v", err)
+	// Buffer to store downloaded JSON bytes
+	var jsonBytes bytes.Buffer
+
+	// TeeReader to write bytes to buffer while being read
+	reader := io.TeeReader(result.Body, &jsonBytes)
+
+	// Parse JSON directly from the reader
+	var data models.CsvDataColumnUniqueValuesMap
+	if err := jsoniter.NewDecoder(reader).Decode(&data); err != nil {
+		return nil, err
 	}
 
-	// Unmarshal the JSON into the Report struct
-	var columnValuesMap models.CsvDataColumnUniqueValuesMap
-	if err := json.Unmarshal(body, &columnValuesMap); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
-	}
-
-	return &columnValuesMap, nil
+	return jsonBytes.Bytes(), nil
 }
 
 func uploadColumnDataToS3(s3Key string, data []byte) (string, error) {
