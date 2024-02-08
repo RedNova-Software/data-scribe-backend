@@ -51,3 +51,5 @@ const (
 	OperationIDField        string = "OperationID"
 	OperationCompletedField string = "Completed"
 )
+
+const GlobalQuestionsField string = "GlobalQuestions"

@@ -35,6 +35,7 @@ interface GatewayStackProps extends cdk.StackProps {
   convertItemLambda: lambda.IFunction;
   deleteItemLambda: lambda.IFunction;
   restoreItemLambda: lambda.IFunction;
+  updateItemGlobalQuestionsLambda: lambda.IFunction;
 
   // User Lambdas
   getUserIDLambda: lambda.IFunction;
@@ -366,6 +367,18 @@ export class GatewayStack extends cdk.Stack {
           "method.request.querystring.itemType": true,
           "method.request.querystring.itemID": true,
         },
+      }
+    );
+
+    const updateItemGlobalQuestionsEndpoint = sharedResource.addResource(
+      "updateGlobalQuestions"
+    );
+    updateItemGlobalQuestionsEndpoint.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(props.updateItemGlobalQuestionsLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
       }
     );
 

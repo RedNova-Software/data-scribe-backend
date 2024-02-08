@@ -44,6 +44,7 @@ export class LambdasStack extends cdk.Stack {
   public readonly convertItemLambda: lambda.IFunction;
   public readonly deleteItemLambda: lambda.IFunction;
   public readonly restoreItemLambda: lambda.IFunction;
+  public readonly updateItemGlobalQuestionsLambda: lambda.IFunction;
 
   // User Lambdas
   public readonly getUserIDLambda: lambda.IFunction;
@@ -473,6 +474,27 @@ export class LambdasStack extends cdk.Stack {
     });
     props.reportTable.grantReadWriteData(this.restoreItemLambda);
     props.templateTable.grantReadWriteData(this.restoreItemLambda);
+
+    this.updateItemGlobalQuestionsLambda = new lambda.Function(
+      this,
+      "UpdateItemGlobalQuestions",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../bin/lambdas/update-item-global-questions")
+        ),
+        handler: "main",
+        runtime: lambda.Runtime.PROVIDED_AL2023,
+        environment: {
+          REPORT_TABLE: props.reportTable.tableName,
+          TEMPLATE_TABLE: props.templateTable.tableName,
+        },
+        memorySize: 1024,
+      }
+    );
+    props.reportTable.grantReadWriteData(this.updateItemGlobalQuestionsLambda);
+    props.templateTable.grantReadWriteData(
+      this.updateItemGlobalQuestionsLambda
+    );
 
     // --------------------------------------------------------- //
 
