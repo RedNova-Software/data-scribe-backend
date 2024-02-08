@@ -456,12 +456,12 @@ func GenerateSection(reportID string, partIndex int, sectionIndex int, generateA
 	// Reset the text output results so that they can be created from input again
 	ResetTextOutputResults(section, generateAIOutput)
 
-	GenerateSectionStaticText(section)
+	GenerateSectionStaticText(section, &report.GlobalQuestions)
 
 	if generateAIOutput {
 		generator := OpenAiGenerator{}
 
-		err = GenerateSectionGeneratorText(generator, section)
+		err = GenerateSectionGeneratorText(generator, section, &report.GlobalQuestions)
 		if err != nil {
 			log.Panicf("error creating generator outputs: %v", err)
 			return fmt.Errorf("error creating generator outputs: %v", err)
@@ -518,14 +518,13 @@ func GenerateChartOutputResults(csvFile *os.File, section *models.ReportSection)
 	return nil
 }
 
-func GenerateSectionStaticText(section *models.ReportSection) {
+func GenerateSectionStaticText(section *models.ReportSection, globalQuestions *[]models.ReportQuestion) {
 	// Iterate over each question, splicing answer into text
 	for _, question := range section.Questions {
 
 		// Generate static text
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Static {
-				// Assuming GenerateStaticText modifies textOutput in place
 				GenerateStaticText(&section.TextOutputs[i], question.Label, question.Answer)
 			}
 		}
@@ -537,14 +536,24 @@ func GenerateSectionStaticText(section *models.ReportSection) {
 		// Generate static text
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Static {
-				// Assuming GenerateStaticText modifies textOutput in place
 				GenerateStaticText(&section.TextOutputs[i], csvData.Label, csvData.Result)
+			}
+		}
+	}
+
+	// Iterate over each global question, splicing answer into text
+	for _, question := range *globalQuestions {
+
+		// Generate static text
+		for i, textOutput := range section.TextOutputs {
+			if textOutput.Type == models.Static {
+				GenerateStaticText(&section.TextOutputs[i], question.Label, question.Answer)
 			}
 		}
 	}
 }
 
-func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.ReportSection) error {
+func GenerateSectionGeneratorText(generator interfaces.Generator, section *models.ReportSection, globalQuestions *[]models.ReportQuestion) error {
 	// Preserve original inputs as to be able to re-create the section later with different answers to the questions.
 	originalInputs := []string{}
 	for _, textOutput := range section.TextOutputs {
@@ -561,7 +570,7 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 		}
 	}
 
-	// Splice answers into prompts
+	// Splice question answers into prompts
 	for _, question := range section.Questions {
 
 		// Generate the inputs with question answers spliced in
@@ -579,6 +588,17 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 		for i, textOutput := range section.TextOutputs {
 			if textOutput.Type == models.Generator {
 				GenerateGeneratorInput(&section.TextOutputs[i], csvData.Label, csvData.Result)
+			}
+		}
+	}
+
+	// Splice global question answers into prompts
+	for _, question := range *globalQuestions {
+
+		// Generate the inputs with question answers spliced in
+		for i, textOutput := range section.TextOutputs {
+			if textOutput.Type == models.Generator {
+				GenerateGeneratorInput(&section.TextOutputs[i], question.Label, question.Answer)
 			}
 		}
 	}
