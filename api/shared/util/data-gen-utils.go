@@ -41,8 +41,9 @@ func AnalyzeOneDimensionalData(csvFile *os.File, columnConfig *models.ReportCSVD
 	}
 	fmt.Println(output)
 	value, ok := output[columnConfig.Label]
+	// No counts were found. Set to zero
 	if !ok {
-		return fmt.Errorf("key '%s' not found in the output", columnConfig.Label)
+		value = 0
 	}
 	switch v := value.(type) {
 	case int:
@@ -190,6 +191,10 @@ func rowPassesFilters(row []string, filterColumns map[string][]string, headers [
 		return true
 	}
 	for column, filterValues := range filterColumns {
+		if len(filterValues) == 0 {
+			continue
+		}
+
 		colIndex := -1
 		for i, header := range headers {
 			if header == column {

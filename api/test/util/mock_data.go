@@ -48,6 +48,7 @@ func mockStaticData() *models.ReportSection {
 					"Incident Type": {"Fire"},
 					"Station":       {"1"},
 					"Year":          {"2016"},
+					"Address":       {"281 WOODLAWN RD"},
 				},
 				Result: "1",
 			},
