@@ -597,6 +597,8 @@ func GenerateSectionGeneratorText(generator interfaces.Generator, section *model
 	for i, textOutput := range section.TextOutputs {
 		if textOutput.Type == models.Generator {
 			go func(index int, input string) {
+				log.Printf("input after splicing: %v", input)
+
 				log.Print("Generating TextOutput: " + strconv.Itoa(index) + "\n")
 				result, err := generator.GeneratePromptResponse(input)
 				// Send a Result struct to the channel
@@ -660,14 +662,14 @@ func GenerateStaticText(textOutput *models.ReportTextOutput, label, value string
 }
 
 // This function allows users to define answers in their openai prompts as well
-func GenerateGeneratorInput(textOutput *models.ReportTextOutput, questionLabel, answer string) {
+func GenerateGeneratorInput(textOutput *models.ReportTextOutput, label, value string) {
 	// Define the pattern to be replaced
-	pattern := "**" + questionLabel
+	pattern := "**" + label
 
 	// Replace the pattern with the answer in textOutput.Input
 	// If first pass, set it to the input, else set it to the generated output replaced.
 	// This way, you can splice question answers in multiple inputs
-	textOutput.Input = strings.ReplaceAll(textOutput.Input, pattern, answer)
+	textOutput.Input = strings.ReplaceAll(textOutput.Input, pattern, value)
 }
 
 // GetReportSection returns the section from a report based on partIndex and sectionIndex.
