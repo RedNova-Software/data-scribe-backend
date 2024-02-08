@@ -75,6 +75,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		CSVID:           "no-csv-id", // Needed because CSVID is a GSI, and cannot be null
 		CSVColumnsS3Key: "no-csv-s3-key",
 		IsDeleted:       false,
+		GlobalQuestions: make([]models.ReportQuestion, 0),
 	}
 
 	err = util.PutNewReport(report)

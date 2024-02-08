@@ -244,6 +244,16 @@ func ConvertTemplateToReport(templateID, reportTitle, reportCity, reportType, us
 		Parts:           make([]models.ReportPart, 0),
 		CSVID:           "no-csv-id", // Needed because CSVID is a GSI, and cannot be null
 		CSVColumnsS3Key: "no-csv-s3-key",
+		GlobalQuestions: make([]models.ReportQuestion, len(template.GlobalQuestions)),
+	}
+
+	// Convert Global Questions
+	for j, question := range template.GlobalQuestions {
+		newReport.GlobalQuestions[j] = models.ReportQuestion{
+			Label:    question.Label,
+			Question: question.Question,
+			Answer:   "",
+		}
 	}
 
 	var reportParts []models.ReportPart

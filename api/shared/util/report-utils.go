@@ -240,10 +240,19 @@ func ConvertReportToTemplate(reportID, templateTitle, userID string) error {
 		CreatedAt:      GetCurrentTime(),
 		LastModifiedAt: GetCurrentTime(),
 		// Create empty parts for filling
-		Parts: make([]models.TemplatePart, 0),
+		Parts:           make([]models.TemplatePart, 0),
+		GlobalQuestions: make([]models.TemplateQuestion, len(report.GlobalQuestions)),
 	}
 
 	var templateParts []models.TemplatePart
+
+	// Convert Global Questions
+	for j, question := range report.GlobalQuestions {
+		newTemplate.GlobalQuestions[j] = models.TemplateQuestion{
+			Label:    question.Label,
+			Question: question.Question,
+		}
+	}
 
 	// Extract report parts into template
 	for i := range report.Parts {

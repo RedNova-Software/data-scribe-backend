@@ -78,6 +78,8 @@ type Report struct {
 	CSVID          string
 
 	CSVColumnsS3Key string
+
+	GlobalQuestions []ReportQuestion
 }
 
 type ReportMetadata struct {

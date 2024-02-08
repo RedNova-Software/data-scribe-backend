@@ -11,7 +11,8 @@ import (
 
 func TestGenerateSectionStaticText(t *testing.T) {
 	section := mockStaticData()
-	util.GenerateSectionStaticText(section)
+	globalQuestions := &[]models.ReportQuestion{}
+	util.GenerateSectionStaticText(section, globalQuestions)
 
 	// Expected results after function execution
 	expectedTextOutput := []models.ReportTextOutput{
@@ -38,10 +39,12 @@ func TestGenerateSectionStaticText(t *testing.T) {
 func TestGenerateSectionGeneratorText(t *testing.T) {
 	section := mockGeneratorData()
 
+	globalQuestions := &[]models.ReportQuestion{}
+
 	// Mock function for GeneratePromptResponse
 	mockGenerator := MockOpenAiGenerator{}
 
-	err := util.GenerateSectionGeneratorText(mockGenerator, section)
+	err := util.GenerateSectionGeneratorText(mockGenerator, section, globalQuestions)
 	if err != nil {
 		t.Errorf("GenerateSectionGeneratorText returned an error: %v", err)
 	}

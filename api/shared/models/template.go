@@ -52,6 +52,8 @@ type Template struct {
 	CreatedAt      int64
 	IsDeleted      bool
 	DeleteAt       int64
+
+	GlobalQuestions []TemplateQuestion
 }
 
 type TemplateMetadata struct {
