@@ -84,7 +84,7 @@ func mockStaticData() *models.ReportSection {
 				XAxisTitle:             "Station",
 				YAxisTitle:             "Time (s)",
 				CartesianGrid:          true,
-				IndependentColumnLabel: "Station",
+				IndependentColumnLabel: "station",
 				IndependentColumn:      "Station",
 				AcceptedValues:         nil,
 				FilterColumns:          nil,

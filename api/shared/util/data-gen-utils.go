@@ -104,7 +104,7 @@ func AnalyzeTwoDimensionalData(csvFile *os.File, reportOutput *models.ReportChar
 			}
 		}
 	}
-	reportOutput.Results, err = convertToChartFormat(reportOutput.IndependentColumn, &output)
+	reportOutput.Results, err = convertToChartFormat(reportOutput.IndependentColumnLabel, &output)
 	if err != nil {
 		return err
 	}
@@ -270,7 +270,7 @@ func findColumnIndex(headers []string, columnName string) int {
 	return -1
 }
 
-func convertToChartFormat(IndependentColumn string, output *map[string]map[string]interface{}) ([]map[string]interface{}, error) {
+func convertToChartFormat(IndependentColumnLabel string, output *map[string]map[string]interface{}) ([]map[string]interface{}, error) {
 	var transformedData []map[string]interface{}
 	for key, value := range *output {
 		if key == "" {
@@ -280,10 +280,10 @@ func convertToChartFormat(IndependentColumn string, output *map[string]map[strin
 		for k, v := range value {
 			transformedMap[k] = v
 		}
-		transformedMap[IndependentColumn] = key
+		transformedMap[IndependentColumnLabel] = key
 		transformedData = append(transformedData, transformedMap)
 	}
-	sortedData, err := sortData(IndependentColumn, transformedData)
+	sortedData, err := sortData(IndependentColumnLabel, transformedData)
 	if err != nil {
 		return nil, err
 	}
